@@ -747,3 +747,17 @@ html[data-theme='dark'] .map { filter: invert(0.9) hue-rotate(180deg) saturate(0
   margin: 0 0 0.6rem 1.9rem; padding: 0.6rem 0.85rem 0.7rem;
   background: var(--bg-elev); border: 1px solid var(--rule); border-radius: var(--radius);
 }
+
+/* Reservation picker & plan bar */
+.plan-bar { font-size: 0.92rem; color: var(--ink-muted); font-style: italic; margin: -0.2rem 0 0.8rem; line-height: 1.5; }
+.plan-bar strong { color: var(--ink); font-style: normal; font-family: var(--font-display); font-weight: 700; }
+.resv { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.4rem; margin: 0.3rem 0 0.7rem; }
+.resv-label { grid-column: 1 / -1; font-family: var(--font-display); font-variant: small-caps; letter-spacing: 0.08em; font-size: 0.9rem; color: var(--vermilion); font-weight: 600; }
+.resv-chip {
+  display: flex; flex-direction: column; align-items: center; gap: 0.1rem;
+  background: var(--bg); border: 1px solid var(--rule-strong); border-radius: var(--radius);
+  padding: 0.45rem 0.3rem; font-family: var(--font-display); font-weight: 700; font-size: 1.15rem; color: var(--ink-soft);
+}
+.resv-chip small { font-family: var(--font-body); font-style: italic; font-weight: 400; font-size: 0.72rem; color: var(--ink-muted); }
+.resv-chip.on { background: var(--vermilion); border-color: var(--vermilion); color: var(--accent-ink); }
+.resv-chip.on small { color: var(--accent-ink); opacity: 0.85; }

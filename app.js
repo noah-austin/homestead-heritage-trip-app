@@ -5,39 +5,55 @@
 (function () {
   'use strict';
 
-  const VERSION = '1.1.0';
+  const VERSION = '1.2.0';
   const STORE_KEY = 'homesteados.v1';
 
   /* ------------------------------------------------------------------
      Content
      ------------------------------------------------------------------ */
 
-  const STOPS = [
-    { id: 'pickup', time: '9:00', title: 'Austins collect the Martins',
-      body: 'Noah and Jill pick up Blake and Megan. Bathroom before, not after. Water bottles. Charged phones; this app has needs.' },
-    { id: 'coffee', time: '9:20', title: 'Summer Moon, Kyle',
-      body: '4217 Benner Rd #400, Kyle. Wood‑fired coffee and Moon Milk, which is sweet cream with a cult following. Order for the car; the drive is long.',
-      link: { label: 'Open Summer Moon in Maps', href: 'https://www.google.com/maps/search/?api=1&query=Summer+Moon+Coffee+4217+Benner+Rd+Kyle+TX+78640' } },
-    { id: 'drive', time: '9:45', sub: 'about 2¼ hours', title: 'The Drive',
-      body: 'I‑35 north the whole way: through Austin, past Temple, past Waco. Assign a DJ. Argue about the DJ.',
-      directions: [
-        'Take I‑35 north to exit 343 (Elm Mott, FM 308).',
-        'Go west on FM 308 for 3.1 miles to the flashing light at FM 933.',
-        'Turn right (north) on FM 933 for 1.6 miles.',
-        'Turn left on Halbert Lane and follow it through the Brazos de Dios entrance.',
-      ],
-      map: true },
-    { id: 'waffles', time: '~12:00', sub: 'open 7:30 to 2:30', title: 'Waffles at Waco Waffle Co.',
-      body: '224 Halbert Ln, on the Homestead grounds, in a restored 1700s timber‑frame house with its own water wheel. Open 7:30 to 2:30. Sweet: the University (peanut butter, banana, chocolate, caramel) or the Webster (strawberries, Nutella, cream). Savory: the Silo, a jalapeño‑cheddar waffle with fried chicken, egg, turkey bacon, and avocado. Nobody has to order the Silo. Someone should.',
-      link: { label: 'Waco Waffle menu', href: 'https://www.wacowaffle.com/' } },
-    { id: 'explore', time: '12:45', sub: 'until 2:30', title: 'Explore',
-      body: 'This is the open part of the day. Pick what sounds good; the app adds up the minutes and tells you whether you are being realistic.',
-      options: true },
-    { id: 'lunch', time: '2:30', sub: 'kitchen closes at 3', title: 'Late lunch at Café Homestead',
-      body: 'Café Homestead’s kitchen closes at 3 on Mondays, so be seated by 2:30. The Tea House in the Gristmill is the lighter alternative if the café is slammed. Order pie “to share.” Watch what happens.' },
-    { id: 'home', time: '3:30', sub: 'village closes at 5', title: 'Homeward',
-      body: 'The village closes at 5 but you will be gone. Reverse the directions, argue about the DJ again. The Trip Report generates itself under More. Someone will nap in the car (−1).' },
-  ];
+  // Everything hangs off the café reservation. Waffles are dessert, on the way out.
+  const RESERVATIONS = ['11:00', '11:30', '12:00'];
+  const WAFFLES_AT = 13 * 60 + 45;   // seated by 1:45; Waco Waffle's kitchen closes at 2:30
+  const LEAVE_BY = 15 * 60;          // gone by 3:00
+  const LUNCH_MIN = 60;              // a sit-down lunch for four
+  const DRIVE_MIN = 135;             // Kyle to Elm Mott, about 2¼ hours
+  const toMin = (t) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+  const fmt = (m) => `${((Math.floor(m / 60) + 11) % 12) + 1}:${String(m % 60).padStart(2, '0')}`;
+  const reservation = () => (S.resv && S.resv.t) || '12:00';
+  const exploreWindow = () => WAFFLES_AT - (toMin(reservation()) + LUNCH_MIN);
+
+  function buildStops() {
+    const R = toMin(reservation());
+    return [
+      { id: 'pickup', time: fmt(R - 180), title: 'Austins collect the Martins',
+        body: 'Noah and Jill pick up Blake and Megan. Bathroom before, not after. Water bottles. Charged phones; this app has needs.' },
+      { id: 'coffee', time: fmt(R - 160), title: 'Summer Moon, Kyle',
+        body: '4217 Benner Rd #400, Kyle. Wood‑fired coffee and Moon Milk, which is sweet cream with a cult following. Order for the car; the drive is long.',
+        link: { label: 'Open Summer Moon in Maps', href: 'https://www.google.com/maps/search/?api=1&query=Summer+Moon+Coffee+4217+Benner+Rd+Kyle+TX+78640' } },
+      { id: 'drive', time: fmt(R - 140), sub: 'about 2¼ hours', title: 'The Drive',
+        body: `I‑35 north the whole way: through Austin, past Temple, past Waco. Arrive about ${fmt(R - 5)} for the ${fmt(R)} table. Assign a DJ. Argue about the DJ.`,
+        directions: [
+          'Take I‑35 north to exit 343 (Elm Mott, FM 308).',
+          'Go west on FM 308 for 3.1 miles to the flashing light at FM 933.',
+          'Turn right (north) on FM 933 for 1.6 miles.',
+          'Turn left on Halbert Lane and follow it through the Brazos de Dios entrance.',
+        ],
+        map: true },
+      { id: 'lunch', time: fmt(R), sub: 'reservation, table for four', title: 'Lunch at Café Homestead',
+        body: 'Farm to table since 1994: pasture‑raised beef, their own bread and cheese, house‑made everything. Ask about the pie now and order it later at the waffle house instead; that is called pacing.',
+        resv: true },
+      { id: 'explore', time: fmt(R + LUNCH_MIN), sub: `until ${fmt(WAFFLES_AT)}`, title: 'Explore',
+        body: 'This is the open part of the day. Pick what sounds good; the app adds up the minutes and tells you whether you are being realistic.',
+        options: true },
+      { id: 'waffles', time: fmt(WAFFLES_AT), sub: 'kitchen closes at 2:30', title: 'Waffles at Waco Waffle Co.',
+        body: 'Dessert, on the way out. 224 Halbert Ln, still on the grounds, in a restored 1700s timber‑frame house with its own water wheel. Sweet: the University (peanut butter, banana, chocolate, caramel) or the Webster (strawberries, Nutella, cream). Savory, if lunch was somehow insufficient: the Silo.',
+        link: { label: 'Waco Waffle menu', href: 'https://www.wacowaffle.com/' } },
+      { id: 'home', time: fmt(LEAVE_BY), sub: 'hard stop', title: 'Homeward',
+        body: 'Gone by three. Reverse the directions, argue about the DJ again. The Trip Report generates itself under More. Someone will nap in the car (−1).' },
+    ];
+  }
+  let STOPS = [];   // filled once state is loaded (see below)
 
   const EXPLORE = [
     { id: 'gristmill', name: 'Homestead Gristmill', min: 30, note: 'Watch the c. 1760 mill grind; samples in the store.' },
@@ -52,7 +68,6 @@
     { id: 'grounds', name: 'Grounds, barn & animals', min: 30, note: 'The 200‑year‑old barn and whatever is grazing.' },
     { id: 'herbs', name: 'Herb garden', min: 10, note: 'A quiet loop. Smell things.' },
   ];
-  const EXPLORE_WINDOW = 105; // minutes between waffles and late lunch
 
   const BINGO_POOL = [
     'Someone in a bonnet or suspenders',
@@ -162,12 +177,14 @@
     notes: {},                // stopId -> {text, ts}
     done: [],                 // stop ids completed
     plan: [],                 // chosen explore option ids
+    resv: null,               // {t: '12:00', ts}
     now: 'pickup',            // current stop
     settings: { sabbath: true, haptics: true, push: false },
     setup: false,
   });
 
   let S = load();
+  STOPS = buildStops();
 
   function load() {
     try {
@@ -311,11 +328,19 @@
   let editingNote = null;   // stop id whose note editor is open
 
   function exploreVerdict() {
+    const W = exploreWindow();
     const planMin = EXPLORE.filter((o) => S.plan.includes(o.id)).reduce((a, o) => a + o.min, 0);
-    if (!S.plan.length) return 'Nothing picked yet. The gristmill is the safe first choice.';
-    if (planMin <= EXPLORE_WINDOW - 20) return `${planMin} of ${EXPLORE_WINDOW} minutes spoken for. Comfortable. Add something.`;
-    if (planMin <= EXPLORE_WINDOW) return `${planMin} of ${EXPLORE_WINDOW} minutes spoken for. Tight but honest.`;
-    return `${planMin} minutes picked for a ${EXPLORE_WINDOW}‑minute window. This is a family, not a schedule; something gives.`;
+    if (!S.plan.length) return `${W} minutes to fill. Nothing picked yet; the gristmill is the safe first choice.`;
+    if (planMin <= W - 20) return `${planMin} of ${W} minutes spoken for. Comfortable. Add something.`;
+    if (planMin <= W) return `${planMin} of ${W} minutes spoken for. Tight but honest.`;
+    return `${planMin} minutes picked for a ${W}‑minute window. This is a family, not a schedule; something gives.`;
+  }
+
+  function resvPicker() {
+    return `<div class="resv">
+      <span class="resv-label">Café table</span>
+      ${RESERVATIONS.map((t) => { const w = WAFFLES_AT - (toMin(t) + LUNCH_MIN); return `<button type="button" class="resv-chip ${reservation() === t ? 'on' : ''}" data-resv="${t}" aria-pressed="${reservation() === t}"><span>${fmt(toMin(t))}</span><small>${w} min to explore</small></button>`; }).join('')}
+    </div>`;
   }
 
   function noteBlock(s) {
@@ -335,6 +360,7 @@
   function stopDetail(s) {
     return `
       <p class="stop-body">${esc(s.body)}</p>
+      ${s.resv ? resvPicker() : ''}
       ${s.directions ? `<ol class="directions">${s.directions.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>${routeStrip()}` : ''}
       ${s.map ? `<div class="map-wrap"><iframe class="map" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Map to Homestead Heritage" src="https://www.google.com/maps?q=Homestead+Heritage,+608+Dry+Creek+Rd,+Waco,+TX+76705&z=9&output=embed"></iframe></div>` : ''}
       ${s.options ? `<div class="picks">${EXPLORE.map((o) => `<button type="button" class="pick ${S.plan.includes(o.id) ? 'on' : ''}" data-opt="${o.id}" aria-pressed="${S.plan.includes(o.id)}"><span>${esc(o.name)}</span><span class="pick-min">${o.min}m</span></button>`).join('')}</div>
@@ -348,6 +374,7 @@
   }
 
   function renderDay() {
+    STOPS = buildStops();
     const root = $('#view-day');
     const d = new Date();
     const dateStr = d.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
@@ -362,6 +389,7 @@
         <h2>The Day</h2>
         <p class="day-date">${esc(dateStr)}</p>
       </div>
+      <p class="plan-bar">Pickup <strong>${esc(STOPS[0].time)}</strong> · table at <strong>${esc(fmt(toMin(reservation())))}</strong> · <strong>${exploreWindow()} min</strong> to explore · waffles <strong>${fmt(WAFFLES_AT)}</strong> · gone by <strong>3:00</strong></p>
 
       <section class="now-card">
         <div class="now-rubric"><span class="rubric">${allDone ? 'Complete' : 'Now'}</span><span class="now-count">stop ${nowIdx + 1} of ${STOPS.length}</span></div>
@@ -380,7 +408,7 @@
           <dt>Where</dt><dd>608 Dry Creek Rd, Waco, TX 76705 (Elm Mott)</dd>
           <dt>Village</dt><dd>Mon–Sat 10–5, closed Sunday</dd>
           <dt>Gristmill</dt><dd>Mon–Sat 9–5</dd>
-          <dt>Waffles</dt><dd>Waco Waffle Co., Mon 7:30–2:30</dd>
+          <dt>Waffles</dt><dd>Waco Waffle Co., Mon 7:30–2:30 (dessert, so be seated by 1:45)</dd>
           <dt>Café</dt><dd>Café Homestead, Mon 11–3</dd>
           <dt>Labor Day</dt><dd>Regular hours are expected, but the village has run a festival on Labor Day Monday before, so hours and crowds may differ. Confirm at <a href="tel:+12547549600">(254) 754‑9600</a>.</dd>
         </dl>
@@ -447,6 +475,13 @@
     }));
     $$('[data-note]', root).forEach((ta) => ta.addEventListener('input', () => {
       S.notes[ta.dataset.note] = { text: ta.value, ts: Date.now() }; save();
+    }));
+
+    // Reservation
+    $$('[data-resv]', root).forEach((b) => b.addEventListener('click', () => {
+      S.resv = { t: b.dataset.resv, ts: Date.now() }; save();
+      toast(`Table at ${fmt(toMin(b.dataset.resv))}. Pickup moves to ${fmt(toMin(b.dataset.resv) - 180)}.`);
+      const y = window.scrollY; renderDay(); window.scrollTo({ top: y });
     }));
 
     // Explore picks
@@ -777,7 +812,7 @@
     dec: (str) => Uint8Array.from(atob(str.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0)),
   };
   async function encodeState() {
-    const json = JSON.stringify({ players: S.players, bingo: S.bingo, events: S.events, ratings: S.ratings, notes: S.notes, done: S.done, plan: S.plan, now: S.now });
+    const json = JSON.stringify({ players: S.players, bingo: S.bingo, events: S.events, ratings: S.ratings, notes: S.notes, done: S.done, plan: S.plan, resv: S.resv, now: S.now });
     const bytes = new TextEncoder().encode(json);
     if (typeof CompressionStream === 'function') {
       const cs = new CompressionStream('deflate-raw');
@@ -819,6 +854,7 @@
     });
     (remote.done || []).forEach((d) => { if (!S.done.includes(d)) { S.done.push(d); n++; } });
     (remote.plan || []).forEach((d) => { if (!S.plan.includes(d)) { S.plan.push(d); n++; } });
+    if (remote.resv && (!S.resv || (remote.resv.ts || 0) > (S.resv.ts || 0))) { S.resv = remote.resv; n++; }
     if (remote.now) {
       const ri = STOPS.findIndex((s) => s.id === remote.now), li = STOPS.findIndex((s) => s.id === S.now);
       if (ri > li) S.now = remote.now;
@@ -949,6 +985,10 @@
   function showNotes() {
     openModal(`
       <h2>Release Notes</h2>
+      <div class="release"><h3>1.2.0 · Reservation</h3><ul>
+        <li>Schedule reversed: café first, waffles for dessert, gone by three.</li>
+        <li>Pick the café reservation and every other time recalculates. The Explore window is shown per slot so the trade‑off is visible.</li>
+      </ul></div>
       <div class="release"><h3>1.1.0 · Elm Mott</h3><ul>
         <li>Added the Martins. Added Summer Moon. Added Austins vs. Martins.</li>
         <li>Added directions and a map, per the spec “whatever looks best.”</li>

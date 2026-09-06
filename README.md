@@ -9,7 +9,7 @@ My family teased me for making web apps for everything. This is the response.
 
 ## What it does
 
-- **The Day.** The schedule (pickup, Summer Moon in Kyle, the drive, waffles at Waco Waffle Co., explore, late lunch at Café Homestead, home), directions with a map, an Explore planner that adds up minutes, and a field-notes box for every stop.
+- **The Day.** The schedule (pickup, Summer Moon in Kyle, the drive, lunch at Café Homestead, explore, waffles at Waco Waffle Co. for dessert, gone by three), derived from whichever café reservation you pick, directions with a map, an Explore planner that adds up minutes, and a field-notes box for every stop.
 - **Bingo.** Everyone gets their own 5×5 card of things that will definitely happen.
   Five in a row is ten points.
 - **Scoreboard.** Points awarded by whoever is holding the phone, which is the only fair system.
