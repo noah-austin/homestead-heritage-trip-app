@@ -18,7 +18,7 @@
     { id: 'coffee', time: '9:20', title: 'Summer Moon, Kyle',
       body: '4217 Benner Rd #400, Kyle. Wood‑fired coffee and Moon Milk, which is sweet cream with a cult following. Order for the car; the drive is long.',
       link: { label: 'Open Summer Moon in Maps', href: 'https://www.google.com/maps/search/?api=1&query=Summer+Moon+Coffee+4217+Benner+Rd+Kyle+TX+78640' } },
-    { id: 'drive', time: '9:45 · about 2¼ hours', title: 'The Drive',
+    { id: 'drive', time: '9:45', sub: 'about 2¼ hours', title: 'The Drive',
       body: 'I‑35 north the whole way: through Austin, past Temple, past Waco. Assign a DJ. Argue about the DJ.',
       directions: [
         'Take I‑35 north to exit 343 (Elm Mott, FM 308).',
@@ -27,15 +27,15 @@
         'Turn left on Halbert Lane and follow it through the Brazos de Dios entrance.',
       ],
       map: true },
-    { id: 'waffles', time: '~12:00', title: 'Waffles at Waco Waffle Co.',
+    { id: 'waffles', time: '~12:00', sub: 'open 7:30 to 2:30', title: 'Waffles at Waco Waffle Co.',
       body: '224 Halbert Ln, on the Homestead grounds, in a restored 1700s timber‑frame house with its own water wheel. Open 7:30 to 2:30. Sweet: the University (peanut butter, banana, chocolate, caramel) or the Webster (strawberries, Nutella, cream). Savory: the Silo, a jalapeño‑cheddar waffle with fried chicken, egg, turkey bacon, and avocado. Nobody has to order the Silo. Someone should.',
       link: { label: 'Waco Waffle menu', href: 'https://www.wacowaffle.com/' } },
-    { id: 'explore', time: '12:45 to 2:30', title: 'Explore',
+    { id: 'explore', time: '12:45', sub: 'until 2:30', title: 'Explore',
       body: 'This is the open part of the day. Pick what sounds good; the app adds up the minutes and tells you whether you are being realistic.',
       options: true },
-    { id: 'lunch', time: '2:30', title: 'Late lunch at Café Homestead',
+    { id: 'lunch', time: '2:30', sub: 'kitchen closes at 3', title: 'Late lunch at Café Homestead',
       body: 'Café Homestead’s kitchen closes at 3 on Mondays, so be seated by 2:30. The Tea House in the Gristmill is the lighter alternative if the café is slammed. Order pie “to share.” Watch what happens.' },
-    { id: 'home', time: '3:30', title: 'Homeward',
+    { id: 'home', time: '3:30', sub: 'village closes at 5', title: 'Homeward',
       body: 'The village closes at 5 but you will be gone. Reverse the directions, argue about the DJ again. The Trip Report generates itself under More. Someone will nap in the car (−1).' },
   ];
 
@@ -306,21 +306,76 @@
     </svg>`;
   }
 
+  // Ephemeral Day-view UI state (not persisted, not synced).
+  let openStop = null;      // expanded timeline row
+  let editingNote = null;   // stop id whose note editor is open
+
+  function exploreVerdict() {
+    const planMin = EXPLORE.filter((o) => S.plan.includes(o.id)).reduce((a, o) => a + o.min, 0);
+    if (!S.plan.length) return 'Nothing picked yet. The gristmill is the safe first choice.';
+    if (planMin <= EXPLORE_WINDOW - 20) return `${planMin} of ${EXPLORE_WINDOW} minutes spoken for. Comfortable. Add something.`;
+    if (planMin <= EXPLORE_WINDOW) return `${planMin} of ${EXPLORE_WINDOW} minutes spoken for. Tight but honest.`;
+    return `${planMin} minutes picked for a ${EXPLORE_WINDOW}‑minute window. This is a family, not a schedule; something gives.`;
+  }
+
+  function noteBlock(s) {
+    const note = (S.notes[s.id] || {}).text || '';
+    if (editingNote === s.id) {
+      return `<div class="note-edit">
+        <textarea data-note="${s.id}" placeholder="What happened here?" rows="3">${esc(note)}</textarea>
+        <div class="btn-row"><button type="button" class="btn small" data-note-done="${s.id}">Done</button></div>
+      </div>`;
+    }
+    if (note.trim()) {
+      return `<blockquote class="fieldnote">${esc(note)}<button type="button" class="note-link" data-note-edit="${s.id}">edit</button></blockquote>`;
+    }
+    return `<button type="button" class="note-link" data-note-edit="${s.id}">+ field note</button>`;
+  }
+
+  function stopDetail(s) {
+    return `
+      <p class="stop-body">${esc(s.body)}</p>
+      ${s.directions ? `<ol class="directions">${s.directions.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>${routeStrip()}` : ''}
+      ${s.map ? `<div class="map-wrap"><iframe class="map" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Map to Homestead Heritage" src="https://www.google.com/maps?q=Homestead+Heritage,+608+Dry+Creek+Rd,+Waco,+TX+76705&z=9&output=embed"></iframe></div>` : ''}
+      ${s.options ? `<div class="picks">${EXPLORE.map((o) => `<button type="button" class="pick ${S.plan.includes(o.id) ? 'on' : ''}" data-opt="${o.id}" aria-pressed="${S.plan.includes(o.id)}"><span>${esc(o.name)}</span><span class="pick-min">${o.min}m</span></button>`).join('')}</div>
+        <p class="verdict">${esc(exploreVerdict())}</p>` : ''}
+      ${s.map || s.link ? `<div class="btn-row">
+        ${s.map ? `<a class="btn small primary" href="https://www.google.com/maps/dir/?api=1&destination=Homestead+Heritage,+608+Dry+Creek+Rd,+Waco,+TX+76705&waypoints=Summer+Moon+Coffee,+4217+Benner+Rd,+Kyle,+TX+78640&travelmode=driving" target="_blank" rel="noopener">Directions via Summer Moon</a>
+                   <a class="btn small" href="https://maps.apple.com/?daddr=608+Dry+Creek+Rd,+Waco,+TX+76705&dirflg=d" target="_blank" rel="noopener">Apple Maps</a>` : ''}
+        ${s.link ? `<a class="btn small" href="${s.link.href}" target="_blank" rel="noopener">${esc(s.link.label)}</a>` : ''}
+      </div>` : ''}
+      ${noteBlock(s)}`;
+  }
+
   function renderDay() {
     const root = $('#view-day');
     const d = new Date();
     const dateStr = d.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' });
     const isSunday = d.getDay() === 0;
-    const planMin = EXPLORE.filter((o) => S.plan.includes(o.id)).reduce((a, o) => a + o.min, 0);
-    const verdict = !S.plan.length ? 'Nothing picked yet. The gristmill is the safe first choice.'
-      : planMin <= EXPLORE_WINDOW - 20 ? `${planMin} minutes picked for a ${EXPLORE_WINDOW}‑minute window. Comfortable. Add something.`
-      : planMin <= EXPLORE_WINDOW ? `${planMin} minutes picked for a ${EXPLORE_WINDOW}‑minute window. Tight but honest.`
-      : `${planMin} minutes picked for a ${EXPLORE_WINDOW}‑minute window. This is a family, not a schedule; something gives.`;
+    const nowIdx = Math.max(0, STOPS.findIndex((s) => s.id === S.now));
+    const now = STOPS[nowIdx];
+    const next = STOPS.slice(nowIdx + 1).find((s) => !S.done.includes(s.id));
+    const allDone = S.done.length >= STOPS.length;
+
     root.innerHTML = `
-      <h2>The Day</h2>
-      <p class="view-intro">${esc(dateStr)}. Tap a stop to make it the current one; tap it again to mark it done.${S.settings.sabbath && isSunday ? ' It is Sunday, so the village is closed. Sabbath mode has done its one job.' : ''}</p>
-      <div class="card">
-        <span class="rubric">Homestead Heritage</span>
+      <div class="day-head">
+        <h2>The Day</h2>
+        <p class="day-date">${esc(dateStr)}</p>
+      </div>
+
+      <section class="now-card">
+        <div class="now-rubric"><span class="rubric">${allDone ? 'Complete' : 'Now'}</span><span class="now-count">stop ${nowIdx + 1} of ${STOPS.length}</span></div>
+        <div class="now-time">${esc(now.time)}${now.sub ? `<span class="now-sub">${esc(now.sub)}</span>` : ''}</div>
+        <h3 class="now-title">${esc(now.title)}</h3>
+        ${stopDetail(now)}
+        <div class="now-actions">
+          ${allDone ? `<button type="button" class="btn block" data-report>Open the Trip Report</button>`
+            : `<button type="button" class="btn primary block" data-advance>${next ? `Done · next, ${esc(next.title)}` : 'Done · that’s the day'}</button>`}
+        </div>
+      </section>
+
+      <details class="essentials">
+        <summary><span class="rubric">Hours, address & the Labor Day question</span></summary>
         <dl class="hours">
           <dt>Where</dt><dd>608 Dry Creek Rd, Waco, TX 76705 (Elm Mott)</dd>
           <dt>Village</dt><dd>Mon–Sat 10–5, closed Sunday</dd>
@@ -329,58 +384,75 @@
           <dt>Café</dt><dd>Café Homestead, Mon 11–3</dd>
           <dt>Labor Day</dt><dd>Regular hours are expected, but the village has run a festival on Labor Day Monday before, so hours and crowds may differ. Confirm at <a href="tel:+12547549600">(254) 754‑9600</a>.</dd>
         </dl>
-      </div>
-      ${routeStrip()}
-      <ol class="stops">
-        ${STOPS.map((s) => {
+        ${S.settings.sabbath && isSunday ? '<p class="fine">It is Sunday. The village is closed. Sabbath mode has done its one job.</p>' : ''}
+      </details>
+
+      <span class="rubric tl-rubric">The whole day</span>
+      <ol class="tl">
+        ${STOPS.map((s, i) => {
           const done = S.done.includes(s.id);
-          const isNow = s.id === S.now;
-          const note = (S.notes[s.id] || {}).text || '';
-          return `<li class="stop ${done ? 'is-done' : ''} ${isNow ? 'is-now' : ''}" data-stop="${s.id}">
-            <div class="stop-head">
-              <h3 class="stop-title">${esc(s.title)}</h3>
-              <span class="stop-time">${esc(s.time)}</span>
-              ${isNow ? '<span class="pill now">Now</span>' : done ? '<span class="pill">Done</span>' : ''}
-            </div>
-            <p class="stop-body">${esc(s.body)}</p>
-            ${s.directions ? `<ol class="directions">${s.directions.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>` : ''}
-            ${s.map ? `<div class="map-wrap"><iframe class="map" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Map to Homestead Heritage" src="https://www.google.com/maps?q=Homestead+Heritage,+608+Dry+Creek+Rd,+Waco,+TX+76705&z=9&output=embed"></iframe></div>
-              <div class="btn-row">
-                <a class="btn small primary" href="https://www.google.com/maps/dir/?api=1&destination=Homestead+Heritage,+608+Dry+Creek+Rd,+Waco,+TX+76705&waypoints=Summer+Moon+Coffee,+4217+Benner+Rd,+Kyle,+TX+78640&travelmode=driving" target="_blank" rel="noopener">Directions via Summer Moon</a>
-                <a class="btn small" href="https://maps.apple.com/?daddr=608+Dry+Creek+Rd,+Waco,+TX+76705&dirflg=d" target="_blank" rel="noopener">Apple Maps</a>
-              </div>` : ''}
-            ${s.options ? `<ul class="options">${EXPLORE.map((o) => `<li><label class="opt ${S.plan.includes(o.id) ? 'on' : ''}"><input type="checkbox" data-opt="${o.id}" ${S.plan.includes(o.id) ? 'checked' : ''} /><span class="opt-name">${esc(o.name)}</span><span class="opt-min">${o.min} min</span><span class="opt-note">${esc(o.note)}</span></label></li>`).join('')}</ul>
-              <p class="verdict">${esc(verdict)}</p>` : ''}
-            ${s.link ? `<a class="btn small" href="${s.link.href}" target="_blank" rel="noopener">${esc(s.link.label)}</a>` : ''}
-            <div class="stop-note">
-              <label for="note-${s.id}">Field notes</label>
-              <textarea id="note-${s.id}" data-note="${s.id}" placeholder="What happened here?">${esc(note)}</textarea>
-            </div>
+          const isNow = i === nowIdx && !allDone;
+          const state = isNow ? 'is-now' : done ? 'is-done' : 'is-later';
+          const open = openStop === s.id && !isNow;
+          const hasNote = ((S.notes[s.id] || {}).text || '').trim().length > 0;
+          return `<li class="tl-row ${state} ${open ? 'is-open' : ''}" data-stop="${s.id}">
+            <button type="button" class="tl-head" aria-expanded="${open}">
+              <span class="tl-dot" aria-hidden="true">${done && !isNow ? '✓' : ''}</span>
+              <span class="tl-time">${esc(s.time)}</span>
+              <span class="tl-title">${esc(s.title)}</span>
+              ${hasNote ? '<span class="tl-note" title="Has a field note">✎</span>' : ''}
+              ${isNow ? '<span class="pill now">Now</span>' : `<span class="tl-chev">${open ? '▾' : '▸'}</span>`}
+            </button>
+            ${open ? `<div class="tl-body">
+              ${stopDetail(s)}
+              <div class="btn-row"><button type="button" class="btn small" data-jump="${s.id}">${done ? 'Reopen this stop' : 'Make this the current stop'}</button></div>
+            </div>` : ''}
           </li>`;
         }).join('')}
       </ol>`;
 
-    $$('.stop-head', root).forEach((head) => head.addEventListener('click', () => {
-      const id = head.closest('.stop').dataset.stop;
-      if (S.now === id) {
-        if (!S.done.includes(id)) S.done.push(id);
-        const idx = STOPS.findIndex((s) => s.id === id);
-        const next = STOPS.slice(idx + 1).find((s) => !S.done.includes(s.id));
-        S.now = next ? next.id : id;
-        toast(next ? `Onward to ${next.title}` : 'Day complete. Trip Report is ready under More.');
-      } else {
-        S.now = id;
-        S.done = S.done.filter((d) => d !== id);
-      }
-      save(); renderDay();
+    // Advance
+    const adv = $('[data-advance]', root);
+    if (adv) adv.addEventListener('click', () => {
+      if (!S.done.includes(now.id)) S.done.push(now.id);
+      const nx = STOPS.slice(nowIdx + 1).find((s) => !S.done.includes(s.id));
+      if (nx) { S.now = nx.id; toast(`Onward to ${nx.title}`); }
+      else toast('Day complete. Trip Report is ready.');
+      editingNote = null; save(); renderDay(); window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+    const rep = $('[data-report]', root);
+    if (rep) rep.addEventListener('click', showReport);
+
+    // Timeline expand / jump
+    $$('.tl-head', root).forEach((b) => b.addEventListener('click', () => {
+      const id = b.closest('.tl-row').dataset.stop;
+      if (id === now.id && !allDone) { window.scrollTo({ top: 0, behavior: 'smooth' }); return; }
+      openStop = openStop === id ? null : id;
+      const y = window.scrollY; renderDay(); window.scrollTo({ top: y });
+    }));
+    $$('[data-jump]', root).forEach((b) => b.addEventListener('click', () => {
+      const id = b.dataset.jump;
+      S.now = id; S.done = S.done.filter((d) => d !== id);
+      openStop = null; save(); renderDay(); window.scrollTo({ top: 0, behavior: 'smooth' });
+    }));
+
+    // Notes
+    $$('[data-note-edit]', root).forEach((b) => b.addEventListener('click', () => {
+      editingNote = b.dataset.noteEdit;
+      const y = window.scrollY; renderDay(); window.scrollTo({ top: y });
+      const ta = $(`[data-note="${editingNote}"]`, root); if (ta) ta.focus();
+    }));
+    $$('[data-note-done]', root).forEach((b) => b.addEventListener('click', () => {
+      editingNote = null; const y = window.scrollY; renderDay(); window.scrollTo({ top: y });
     }));
     $$('[data-note]', root).forEach((ta) => ta.addEventListener('input', () => {
-      S.notes[ta.dataset.note] = { text: ta.value, ts: Date.now() };
-      save();
+      S.notes[ta.dataset.note] = { text: ta.value, ts: Date.now() }; save();
     }));
-    $$('[data-opt]', root).forEach((cb) => cb.addEventListener('change', () => {
-      const id = cb.dataset.opt;
-      S.plan = cb.checked ? S.plan.concat(id) : S.plan.filter((x) => x !== id);
+
+    // Explore picks
+    $$('[data-opt]', root).forEach((b) => b.addEventListener('click', () => {
+      const id = b.dataset.opt;
+      S.plan = S.plan.includes(id) ? S.plan.filter((x) => x !== id) : S.plan.concat(id);
       save();
       const y = window.scrollY; renderDay(); window.scrollTo({ top: y });
     }));
@@ -882,6 +954,7 @@
         <li>Added directions and a map, per the spec “whatever looks best.”</li>
         <li>The Explore stop now adds up minutes and passes judgment.</li>
         <li>Waffles corrected to Waco Waffle Co., which turns out to be on the Homestead grounds.</li>
+        <li>The Day tab rebuilt: one “Now” card, a compact timeline, and field notes tucked away until wanted.</li>
       </ul></div>
       <div class="release"><h3>1.0.0 · Waco</h3><ul>
         <li>Initial release. Contains everything.</li>
