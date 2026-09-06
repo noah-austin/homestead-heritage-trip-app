@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '1.2.0';
+  const VERSION = '1.3.0';
   const STORE_KEY = 'homesteados.v1';
 
   /* ------------------------------------------------------------------
@@ -139,18 +139,60 @@
   ];
 
   const SHOPS = [
-    { id: 'gristmill', name: 'Homestead Gristmill', note: 'c. 1760 timber‑frame mill; cider mill and tea room inside.' },
-    { id: 'pottery', name: 'The Potter’s House', note: 'Wheel‑thrown stoneware. It looks easy. It is not.' },
-    { id: 'wood', name: 'Woodworking Shop', note: 'Hand‑cut joinery, furniture, the smell of sawdust.' },
-    { id: 'forge', name: 'The Forge', note: 'Blacksmithing. Stand back. Then lean in.' },
-    { id: 'fiber', name: 'Fiber Crafts', note: 'Spinning, weaving, quilting.' },
-    { id: 'basket', name: 'Basketry', note: 'Woven by hand, held together by patience.' },
-    { id: 'cheese', name: 'Cheese', note: 'Judge harshly. This is the one that matters.' },
-    { id: 'waffle', name: 'Waco Waffle Co.', note: 'Waffles in a timber‑frame house. Rate the waffle, not the house.' },
-    { id: 'cafe', name: 'Café Homestead', note: 'Lunch. Pie. The rating that ends friendships.' },
-    { id: 'giftbarn', name: 'Gift Barn', note: 'Where resolve goes to be tested.' },
-    { id: 'grounds', name: 'Grounds & Animals', note: 'The barn, the fields, whatever stared at you.' },
+    { id: 'gristmill', name: 'Homestead Gristmill', note: 'c. 1760 timber‑frame mill; cider mill and tea room inside.',
+      notice: 'The two stones never touch. The miller sets the gap by hand, and the furrows cut into the stone faces carry the meal outward as the runner turns. Listen for the pitch of the stones to change when the grain runs low.',
+      ask: ['How often do you dress, meaning re‑cut, the stones?', 'What does stone‑ground actually change about the flour?'] },
+    { id: 'pottery', name: 'The Potter’s House', note: 'Wheel‑thrown stoneware. It looks easy. It is not.',
+      notice: 'Watch centering: the potter’s hands barely move and the clay does all the moving. On finished pieces, turn one over and look at the trimmed foot ring. Glaze color comes from minerals and from what the kiln atmosphere does to them.',
+      ask: ['Where does your clay come from?', 'How many pieces do you lose to the kiln?'] },
+    { id: 'wood', name: 'Woodworking Shop', note: 'Hand‑cut joinery and the furniture showroom.',
+      notice: 'Hand‑cut dovetails have thin pins and slightly uneven spacing; machine‑cut ones are perfectly uniform. Look for faint hand‑plane tracks on flat surfaces, and pull a drawer to feel how it runs.',
+      ask: ['Which joint takes longest to learn?', 'How long does a chair take, start to finish?'] },
+    { id: 'forge', name: 'The Forge', note: 'Blacksmithing. Stand back, then lean in.',
+      notice: 'Color is temperature. Dull red is too cold to move much; bright orange into yellow is working heat. The hammer blows are placed, not just hard, and the smith reads the steel between each one.',
+      ask: ['What is the hardest thing you make?', 'How do you know the steel is ready?'] },
+    { id: 'fiber', name: 'Fiber Crafts', note: 'Spinning, weaving, quilting.',
+      notice: 'In spinning, the fiber is drafted, meaning drawn out thin, a moment before the twist locks it. On a loom, the warp threads carry the tension and the weft carries the pattern. Quilts: look at the stitch length on the back.',
+      ask: ['How long does a yard of cloth take?', 'What breed of sheep did this come from?'] },
+    { id: 'basket', name: 'Basketry', note: 'Woven by hand, held together by patience.',
+      notice: 'Everything starts at the base. Look for the moment the weavers turn up to form the sides, and for the rim, which holds the whole thing together. White oak splints are often split by hand along the grain.',
+      ask: ['How long does the oak soak before you can work it?', 'Which shape is the hardest to get right?'] },
+    { id: 'cheese', name: 'Cheese', note: 'Award‑winning, sampled, judged.',
+      notice: 'Aged cheeses grow a natural rind and their flavor concentrates with time. Taste the young and the aged version of the same cheese back to back if they have both out.',
+      ask: ['How long is this one aged?', 'Which one would you take home?'] },
+    { id: 'waffle', name: 'Waco Waffle Co.', note: 'Waffles in a timber‑frame house. Rate the waffle, not the house.',
+      notice: 'The building is a restored eighteenth‑century timber frame: pegged joints, no nails. The water wheel outside is the same technology as the gristmill, in miniature.',
+      ask: ['Which waffle do you make the most of?', 'Which one do the staff actually eat?'] },
+    { id: 'cafe', name: 'Café Homestead', note: 'Lunch. Pie. The rating that ends friendships.',
+      notice: 'The bread, cheese, and much of the produce come from a few hundred yards away. Ask what is from the farm today.',
+      ask: ['What came off the farm this morning?', 'What should four people share?'] },
+    { id: 'giftbarn', name: 'Gift Barn', note: 'Where resolve goes to be tested.',
+      notice: 'Sort made‑here from bought‑in. Look for a maker’s mark on the bottom of pottery and the underside of woodwork.',
+      ask: ['Who made this one?', 'What sells out first at the fair?'] },
+    { id: 'grounds', name: 'Grounds & Animals', note: 'The barn, the fields, whatever stared at you.',
+      notice: 'The big barn is timber‑framed: look up at the pegged mortise‑and‑tenon joints holding the beams. No nails in the frame.',
+      ask: ['How old is the barn, and where did it come from?', 'What is the farm growing right now?'] },
   ];
+
+  const PREDICTIONS = [
+    { id: 'top', q: 'Highest‑rated stop of the day', type: 'shop' },
+    { id: 'first', q: 'Who buys the first thing', type: 'player' },
+    { id: 'count', q: 'Total purchases, all four of us', type: 'number', options: ['0', '1', '2', '3', '4', '5', '6+'] },
+    { id: 'amish', q: 'Does anyone ask “Is this Amish?”', type: 'yesno' },
+    { id: 'late', q: 'How late does the day run', type: 'choice', options: ['On time', '1–15 min', '16–30 min', '31–60 min', 'Don’t ask'] },
+    { id: 'photos', q: 'Who takes the most photos', type: 'player' },
+    { id: 'return', q: 'First to say “we should come back”', type: 'player' },
+  ];
+  const PRED_POINTS = 5;
+
+  const SUPERLATIVES = [
+    { id: 'purchase', name: 'Best Purchase' },
+    { id: 'question', name: 'Best Question Asked an Artisan' },
+    { id: 'move', name: 'Most Likely to Move Here' },
+    { id: 'waffle', name: 'Best Waffle Order' },
+    { id: 'mvp', name: 'MVP of the Day' },
+  ];
+  const SUP_POINTS = 5;
 
   const BOOT_LINES = [
     'Loading parchment…',
@@ -178,6 +220,10 @@
     done: [],                 // stop ids completed
     plan: [],                 // chosen explore option ids
     resv: null,               // {t: '12:00', ts}
+    preds: {},                // playerId -> predId -> {v, ts}
+    actuals: {},              // predId -> {v, ts}  (group-settled answers)
+    votes: {},                // supId -> voterId -> {p, ts}
+    doneAt: {},               // stopId -> ts when marked done
     now: 'pickup',            // current stop
     settings: { sabbath: true, haptics: true, push: false },
     setup: false,
@@ -268,7 +314,7 @@
      Navigation
      ------------------------------------------------------------------ */
 
-  const renderers = { day: renderDay, bingo: renderBingo, score: renderScore, rate: renderRate, more: renderMore };
+  const renderers = { day: renderDay, bingo: renderBingo, score: renderScore, rate: renderRate, predict: renderPredict, more: renderMore };
   let currentView = 'day';
 
   function show(view) {
@@ -396,6 +442,8 @@
         <div class="now-time">${esc(now.time)}${now.sub ? `<span class="now-sub">${esc(now.sub)}</span>` : ''}</div>
         <h3 class="now-title">${esc(now.title)}</h3>
         ${stopDetail(now)}
+        ${['coffee', 'drive'].includes(now.id) ? `<button type="button" class="nudge" data-goto="predict">Predictions are open. Lock them in before Elm Mott. ›</button>` : ''}
+        ${now.id === 'home' || allDone ? `<button type="button" class="nudge" data-goto="predict">Vote the superlatives and settle the predictions. ›</button>` : ''}
         <div class="now-actions">
           ${allDone ? `<button type="button" class="btn block" data-report>Open the Trip Report</button>`
             : `<button type="button" class="btn primary block" data-advance>${next ? `Done · next, ${esc(next.title)}` : 'Done · that’s the day'}</button>`}
@@ -443,6 +491,7 @@
     const adv = $('[data-advance]', root);
     if (adv) adv.addEventListener('click', () => {
       if (!S.done.includes(now.id)) S.done.push(now.id);
+      if (!S.doneAt[now.id]) S.doneAt[now.id] = Date.now();
       const nx = STOPS.slice(nowIdx + 1).find((s) => !S.done.includes(s.id));
       if (nx) { S.now = nx.id; toast(`Onward to ${nx.title}`); }
       else toast('Day complete. Trip Report is ready.');
@@ -450,6 +499,7 @@
     });
     const rep = $('[data-report]', root);
     if (rep) rep.addEventListener('click', showReport);
+    $$('[data-goto]', root).forEach((b) => b.addEventListener('click', () => show(b.dataset.goto)));
 
     // Timeline expand / jump
     $$('.tl-head', root).forEach((b) => b.addEventListener('click', () => {
@@ -530,7 +580,8 @@
 
   function renderBingo() {
     const root = $('#view-bingo');
-    root.innerHTML = `<h2>Homestead Bingo</h2>`;
+    root.innerHTML = `<button type="button" class="back" data-back>‹ More</button><h2>Homestead Bingo</h2>`;
+    $('[data-back]', root).addEventListener('click', () => show('more'));
     if (needPlayers(root)) return;
     const p = activePlayer();
     const marks = S.bingo[p.id] || [];
@@ -651,27 +702,38 @@
     return { avg: ns.reduce((a, b) => a + b, 0) / ns.length, count: ns.length };
   }
 
+  let openGuide = null;
   function renderRate() {
     const root = $('#view-rate');
-    root.innerHTML = `<h2>Ratings</h2>`;
+    root.innerHTML = `<h2>Field Guide</h2>`;
     if (needPlayers(root)) return;
     const p = activePlayer();
     root.innerHTML += `
-      <p class="view-intro">Rate each stop on the five‑loaf scale. Family averages appear as votes come in.</p>
+      <p class="view-intro">What to notice at each stop, what to ask, and the five‑loaf rating once you have been.</p>
       ${playerChips()}
       ${SHOPS.map((s) => {
         const mine = ((S.ratings[p.id] || {})[s.id] || {}).n || 0;
         const a = shopAverage(s.id);
+        const open = openGuide === s.id;
         return `<div class="card shop" data-shop="${s.id}">
           <span class="name">${esc(s.name)}</span>
           <div class="loaves" role="radiogroup" aria-label="${esc(s.name)} rating">
             ${[1, 2, 3, 4, 5].map((n) => `<button type="button" class="loaf ${n <= mine ? 'on' : ''}" data-n="${n}" aria-label="${n} loaves">🍞</button>`).join('')}
           </div>
           <p class="note">${esc(s.note)}</p>
-          <p class="avg">${a ? `Family average ${a.avg.toFixed(1)} of 5 from ${a.count} vote${a.count === 1 ? '' : 's'}` : 'No votes yet'}</p>
+          <button type="button" class="guide-toggle" data-guide="${s.id}" aria-expanded="${open}">${open ? '▾' : '▸'} Field guide</button>
+          ${open ? `<div class="guide">
+            <span class="guide-h">What to notice</span><p>${esc(s.notice)}</p>
+            <span class="guide-h">Ask them</span><ul>${s.ask.map((q) => `<li>${esc(q)}</li>`).join('')}</ul>
+          </div>` : ''}
+          <p class="avg">${a ? `Family average ${a.avg.toFixed(1)} of 5 from ${a.count} vote${a.count === 1 ? '' : 's'}` : 'Not yet rated'}</p>
         </div>`;
       }).join('')}`;
     bindChips(root);
+    $$('[data-guide]', root).forEach((b) => b.addEventListener('click', () => {
+      openGuide = openGuide === b.dataset.guide ? null : b.dataset.guide;
+      const y = window.scrollY; renderRate(); window.scrollTo({ top: y });
+    }));
     $$('.loaf', root).forEach((b) => b.addEventListener('click', () => {
       const shop = b.closest('[data-shop]').dataset.shop;
       const n = Number(b.dataset.n);
@@ -683,6 +745,152 @@
   }
 
   /* ------------------------------------------------------------------
+     Predict: predictions on the way up, superlatives on the way home
+     ------------------------------------------------------------------ */
+
+  function lateBucket(min) {
+    if (min <= 0) return 'On time';
+    if (min <= 15) return '1–15 min';
+    if (min <= 30) return '16–30 min';
+    if (min <= 60) return '31–60 min';
+    return 'Don’t ask';
+  }
+  // Drift: when Explore was marked done (= arriving at waffles) vs. the planned waffle time.
+  function measuredDrift() {
+    const ts = S.doneAt.explore;
+    if (!ts) return null;
+    const d = new Date(ts);
+    return d.getHours() * 60 + d.getMinutes() - WAFFLES_AT;
+  }
+  function topRatedShop() {
+    const r = SHOPS.map((sh) => ({ sh, a: shopAverage(sh.id) })).filter((x) => x.a).sort((a, b) => b.a.avg - a.a.avg);
+    return r.length ? r[0].sh.id : null;
+  }
+  function actualFor(q) {
+    const manual = (S.actuals[q.id] || {}).v;
+    if (q.id === 'top') return manual || topRatedShop();
+    if (q.id === 'late') { const m = measuredDrift(); return manual || (m === null ? null : lateBucket(m)); }
+    return manual === undefined ? null : manual;
+  }
+  function labelFor(q, v) {
+    if (v === null || v === undefined || v === '') return '—';
+    if (q.type === 'shop') return (SHOPS.find((x) => x.id === v) || {}).name || v;
+    if (q.type === 'player') return (player(v) || {}).name || v;
+    if (q.type === 'yesno') return v === 'yes' ? 'Yes' : 'No';
+    return String(v);
+  }
+  function optionsFor(q) {
+    if (q.type === 'shop') return SHOPS.map((x) => ({ v: x.id, l: x.name }));
+    if (q.type === 'player') return S.players.map((x) => ({ v: x.id, l: x.name }));
+    if (q.type === 'yesno') return [{ v: 'yes', l: 'Yes' }, { v: 'no', l: 'No' }];
+    return q.options.map((o) => ({ v: o, l: o }));
+  }
+  function supWinners(cat) {
+    const tally = {};
+    Object.values(S.votes[cat.id] || {}).forEach((v) => { if (v && v.p && player(v.p)) tally[v.p] = (tally[v.p] || 0) + 1; });
+    const max = Math.max(0, ...Object.values(tally));
+    return max ? Object.keys(tally).filter((k) => tally[k] === max) : [];
+  }
+  // Recompute derived points deterministically so every synced phone agrees.
+  function settleScores() {
+    S.events = S.events.filter((e) => !e.id.startsWith('pred-') && !e.id.startsWith('sup-'));
+    S.players.forEach((pl) => PREDICTIONS.forEach((q) => {
+      const mine = ((S.preds[pl.id] || {})[q.id] || {}).v;
+      const act = actualFor(q);
+      if (mine && act && mine === act) S.events.push({ id: `pred-${pl.id}-${q.id}`, player: pl.id, label: `Called it: ${q.q}`, points: PRED_POINTS, ts: Date.now() });
+    }));
+    SUPERLATIVES.forEach((cat) => supWinners(cat).forEach((w) => {
+      S.events.push({ id: `sup-${cat.id}-${w}`, player: w, label: cat.name, points: SUP_POINTS, ts: Date.now() });
+    }));
+  }
+
+  let predictSection = 'before';
+  function renderPredict() {
+    const root = $('#view-predict');
+    root.innerHTML = `<h2>Predict</h2>`;
+    if (needPlayers(root)) return;
+    const p = activePlayer();
+    settleScores(); save();
+    const tabs = `<div class="seg">
+      <button type="button" class="${predictSection === 'before' ? 'on' : ''}" data-seg="before">On the way up</button>
+      <button type="button" class="${predictSection === 'after' ? 'on' : ''}" data-seg="after">On the way home</button>
+    </div>`;
+
+    if (predictSection === 'before') {
+      const settled = PREDICTIONS.filter((q) => actualFor(q)).length;
+      root.innerHTML += `
+        <p class="view-intro">Lock in your calls before Elm Mott. ${PRED_POINTS} points per correct prediction, settled on the way home.</p>
+        ${tabs}
+        ${playerChips()}
+        ${PREDICTIONS.map((q) => {
+          const mine = ((S.preds[p.id] || {})[q.id] || {}).v;
+          const act = actualFor(q);
+          const others = S.players.filter((x) => x.id !== p.id).map((x) => { const v = ((S.preds[x.id] || {})[q.id] || {}).v; return v ? `${x.name}: ${labelFor(q, v)}` : null; }).filter(Boolean);
+          return `<div class="card pred" data-q="${q.id}">
+            <div class="pred-q">${esc(q.q)}${act ? `<span class="pill ${mine === act ? 'now' : ''}">${mine === act ? 'Called it' : 'Actual: ' + esc(labelFor(q, act))}</span>` : ''}</div>
+            <div class="optgrid">${optionsFor(q).map((o) => `<button type="button" class="optbtn ${mine === o.v ? 'on' : ''}" data-pick="${esc(o.v)}">${esc(o.l)}</button>`).join('')}</div>
+            ${others.length ? `<p class="others">${others.map(esc).join(' · ')}</p>` : ''}
+          </div>`;
+        }).join('')}
+        <p class="fine">${settled ? `${settled} of ${PREDICTIONS.length} settled so far.` : 'Nothing is settled yet. Switch to “On the way home” once the day is done.'}</p>`;
+      bindChips(root);
+      $$('[data-pick]', root).forEach((b) => b.addEventListener('click', () => {
+        const q = b.closest('[data-q]').dataset.q;
+        S.preds[p.id] = S.preds[p.id] || {};
+        const cur = (S.preds[p.id][q] || {}).v;
+        S.preds[p.id][q] = { v: cur === b.dataset.pick ? null : b.dataset.pick, ts: Date.now() };
+        save(); const y = window.scrollY; renderPredict(); window.scrollTo({ top: y });
+      }));
+    } else {
+      const drift = measuredDrift();
+      const manualQs = PREDICTIONS.filter((q) => !['top'].includes(q.id));
+      root.innerHTML += `
+        <p class="view-intro">Two jobs for the car home: settle what actually happened, then vote the superlatives. ${SUP_POINTS} points to each winner.</p>
+        ${tabs}
+        <span class="rubric">Settle the day</span>
+        <p class="fine">Highest‑rated stop comes from the Field Guide ratings${drift !== null ? `; lateness was measured at ${drift <= 0 ? 'on time' : drift + ' minutes behind'} when Explore ended` : ''}. The rest, the group decides.</p>
+        ${manualQs.map((q) => {
+          const act = (S.actuals[q.id] || {}).v || (q.id === 'late' ? actualFor(q) : null);
+          return `<div class="card pred" data-aq="${q.id}">
+            <div class="pred-q">${esc(q.q)}</div>
+            <div class="optgrid">${optionsFor(q).map((o) => `<button type="button" class="optbtn ${act === o.v ? 'on' : ''}" data-actual="${esc(o.v)}">${esc(o.l)}</button>`).join('')}</div>
+          </div>`;
+        }).join('')}
+        <hr class="rule" />
+        <span class="rubric">Superlatives</span>
+        ${playerChips()}
+        <p class="fine">${esc(p.name)} is voting. You cannot vote for yourself; this is a family, not Congress.</p>
+        ${SUPERLATIVES.map((cat) => {
+          const mine = ((S.votes[cat.id] || {})[p.id] || {}).p;
+          const winners = supWinners(cat);
+          const nVotes = Object.values(S.votes[cat.id] || {}).filter((v) => v && v.p).length;
+          return `<div class="card pred" data-cat="${cat.id}">
+            <div class="pred-q">${esc(cat.name)}${winners.length ? `<span class="pill now">${winners.map((w) => esc((player(w) || {}).name || '')).join(' & ')}</span>` : ''}</div>
+            <div class="optgrid">${S.players.filter((x) => x.id !== p.id).map((x) => `<button type="button" class="optbtn ${mine === x.id ? 'on' : ''}" data-vote="${esc(x.id)}">${esc(x.name)}</button>`).join('')}</div>
+            <p class="others">${nVotes} of ${S.players.length} votes in</p>
+          </div>`;
+        }).join('')}
+        <div class="btn-row"><button type="button" class="btn primary" data-report>Open the Trip Report</button></div>`;
+      bindChips(root);
+      $$('[data-actual]', root).forEach((b) => b.addEventListener('click', () => {
+        const q = b.closest('[data-aq]').dataset.aq;
+        const cur = (S.actuals[q] || {}).v;
+        S.actuals[q] = { v: cur === b.dataset.actual ? null : b.dataset.actual, ts: Date.now() };
+        save(); const y = window.scrollY; renderPredict(); window.scrollTo({ top: y });
+      }));
+      $$('[data-vote]', root).forEach((b) => b.addEventListener('click', () => {
+        const cat = b.closest('[data-cat]').dataset.cat;
+        S.votes[cat] = S.votes[cat] || {};
+        const cur = (S.votes[cat][p.id] || {}).p;
+        S.votes[cat][p.id] = { p: cur === b.dataset.vote ? null : b.dataset.vote, ts: Date.now() };
+        save(); const y = window.scrollY; renderPredict(); window.scrollTo({ top: y });
+      }));
+      $('[data-report]', root).addEventListener('click', showReport);
+    }
+    $$('[data-seg]', root).forEach((b) => b.addEventListener('click', () => { predictSection = b.dataset.seg; renderPredict(); window.scrollTo({ top: 0 }); }));
+  }
+
+  /* ------------------------------------------------------------------
      More: menu, report, primer, sync, settings, about
      ------------------------------------------------------------------ */
 
@@ -691,6 +899,7 @@
     root.innerHTML = `
       <h2>More</h2>
       <ul class="menu">
+        <li><button type="button" data-go="bingo">Homestead Bingo <small>For the watchful. Optional.</small><span class="arrow">›</span></button></li>
         <li><button type="button" data-go="report">Trip Report <small>Charts nobody asked for</small><span class="arrow">›</span></button></li>
         <li><button type="button" data-go="primer">Who Are These People? <small>A short, fair primer on Homestead Heritage</small><span class="arrow">›</span></button></li>
         <li><button type="button" data-go="sync">Sync Phones <small>Text a link, merge the scores</small><span class="arrow">›</span></button></li>
@@ -702,7 +911,7 @@
     $$('[data-go]', root).forEach((b) => b.addEventListener('click', () => pages[b.dataset.go]()));
   }
 
-  const pages = { report: showReport, primer: showPrimer, sync: showSync, settings: showSettings, notes: showNotes, privacy: showPrivacy };
+  const pages = { bingo: () => show('bingo'), report: showReport, primer: showPrimer, sync: showSync, settings: showSettings, notes: showNotes, privacy: showPrivacy };
 
   /* Trip report -------------------------------------------------------- */
 
@@ -749,7 +958,11 @@
   }
 
   function showReport() {
+    settleScores(); save();
     const board = totals();
+    const drift = measuredDrift();
+    const predRows = S.players.map((pl) => ({ pl, n: PREDICTIONS.filter((q) => { const v = ((S.preds[pl.id] || {})[q.id] || {}).v; const a = actualFor(q); return v && a && v === a; }).length, total: PREDICTIONS.filter((q) => ((S.preds[pl.id] || {})[q.id] || {}).v).length })).filter((r) => r.total).sort((a, b) => b.n - a.n);
+    const supRows = SUPERLATIVES.map((cat) => ({ cat, w: supWinners(cat) })).filter((r) => r.w.length);
     const squares = Object.values(S.bingo).reduce((a, m) => a + m.length, 0);
     const bingos = S.players.reduce((a, p) => a + completedLines(S.bingo[p.id] || []).length, 0);
     const rated = SHOPS.map((s) => ({ s, a: shopAverage(s.id) })).filter((x) => x.a).sort((a, b) => b.a.avg - a.a.avg);
@@ -765,10 +978,15 @@
         <div class="stat"><div class="n">${S.done.length}/${STOPS.length}</div><div class="l">stops completed</div></div>
       </div>
       ${champion ? `<blockquote>${esc(champion.p.name)} finishes the day on ${champion.pts} points${board.length > 1 ? `, ahead of ${esc(board[1].p.name)} by ${champion.pts - board[1].pts}` : ''}. History will judge whether it was earned.</blockquote>` : ''}
+      ${drift !== null ? `<p class="muted"><em>${drift <= 0 ? 'The day ran on time, which nobody predicted.' : `The day ran ${drift} minutes behind by the time Explore ended.`}</em></p>` : ''}
       <span class="rubric">Points by person</span>
       ${board.length ? barChart(board) : '<p class="muted">No players yet.</p>'}
       <span class="rubric">Pie chart of pie</span>
       ${pieChartOfPie(pie)}
+      <span class="rubric">Predictions</span>
+      ${predRows.length ? `<ol>${predRows.map((r) => `<li>${esc(r.pl.name)} <span class="muted">${r.n} of ${r.total} right</span></li>`).join('')}</ol>` : '<p class="muted">No predictions were made. Bold.</p>'}
+      <span class="rubric">Superlatives</span>
+      ${supRows.length ? `<ul>${supRows.map((r) => `<li><strong>${esc(r.cat.name)}:</strong> ${r.w.map((w) => esc((player(w) || {}).name || '')).join(' & ')}</li>`).join('')}</ul>` : '<p class="muted">Not yet voted.</p>'}
       <span class="rubric">Family rankings</span>
       ${rated.length ? `<ol>${rated.map((x) => `<li>${esc(x.s.name)} <span class="muted">${x.a.avg.toFixed(1)} of 5</span></li>`).join('')}</ol>` : '<p class="muted">Nothing rated yet.</p>'}
       <span class="rubric">Field notes</span>
@@ -782,6 +1000,7 @@
           `${squares} bingo squares, ${bingos} bingos, ${S.done.length}/${STOPS.length} stops`,
           ...board.map((r, i) => `${i + 1}. ${r.p.name}: ${r.pts}`),
           rated.length ? 'Rankings: ' + rated.map((x) => `${x.s.name} ${x.a.avg.toFixed(1)}`).join(', ') : '',
+          ...supRows.map((r) => `${r.cat.name}: ${r.w.map((w) => (player(w) || {}).name).join(' & ')}`),
           ...notes.map((x) => `${x.s.title}: ${x.t}`),
         ].filter(Boolean).join('\n');
         try { await navigator.clipboard.writeText(text); toast('Copied'); } catch (e) { toast('Could not copy'); }
@@ -812,7 +1031,7 @@
     dec: (str) => Uint8Array.from(atob(str.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0)),
   };
   async function encodeState() {
-    const json = JSON.stringify({ players: S.players, bingo: S.bingo, events: S.events, ratings: S.ratings, notes: S.notes, done: S.done, plan: S.plan, resv: S.resv, now: S.now });
+    const json = JSON.stringify({ players: S.players, bingo: S.bingo, events: S.events, ratings: S.ratings, notes: S.notes, done: S.done, plan: S.plan, resv: S.resv, preds: S.preds, actuals: S.actuals, votes: S.votes, doneAt: S.doneAt, now: S.now });
     const bytes = new TextEncoder().encode(json);
     if (typeof CompressionStream === 'function') {
       const cs = new CompressionStream('deflate-raw');
@@ -855,6 +1074,10 @@
     (remote.done || []).forEach((d) => { if (!S.done.includes(d)) { S.done.push(d); n++; } });
     (remote.plan || []).forEach((d) => { if (!S.plan.includes(d)) { S.plan.push(d); n++; } });
     if (remote.resv && (!S.resv || (remote.resv.ts || 0) > (S.resv.ts || 0))) { S.resv = remote.resv; n++; }
+    const lww2 = (mine, theirs) => { Object.entries(theirs || {}).forEach(([k1, inner]) => { mine[k1] = mine[k1] || {}; Object.entries(inner || {}).forEach(([k2, v]) => { const cur = mine[k1][k2]; if (!cur || (v.ts || 0) > (cur.ts || 0)) { mine[k1][k2] = v; n++; } }); }); };
+    lww2(S.preds, remote.preds); lww2(S.votes, remote.votes);
+    Object.entries(remote.actuals || {}).forEach(([k, v]) => { const cur = S.actuals[k]; if (!cur || (v.ts || 0) > (cur.ts || 0)) { S.actuals[k] = v; n++; } });
+    Object.entries(remote.doneAt || {}).forEach(([k, ts]) => { if (!S.doneAt[k] || ts < S.doneAt[k]) { S.doneAt[k] = ts; n++; } });
     if (remote.now) {
       const ri = STOPS.findIndex((s) => s.id === remote.now), li = STOPS.findIndex((s) => s.id === S.now);
       if (ri > li) S.now = remote.now;
@@ -985,6 +1208,11 @@
   function showNotes() {
     openModal(`
       <h2>Release Notes</h2>
+      <div class="release"><h3>1.3.0 · Four Adults</h3><ul>
+        <li>Predictions on the way up, superlatives on the way home. Points settle themselves.</li>
+        <li>Ratings grew into a Field Guide: what to notice at each stop and what to ask.</li>
+        <li>Bingo demoted to the More menu after a frank conversation about who was going to play it.</li>
+      </ul></div>
       <div class="release"><h3>1.2.0 · Reservation</h3><ul>
         <li>Schedule reversed: café first, waffles for dessert, gone by three.</li>
         <li>Pick the café reservation and every other time recalculates. The Explore window is shown per slot so the trade‑off is visible.</li>

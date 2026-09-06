@@ -761,3 +761,27 @@ html[data-theme='dark'] .map { filter: invert(0.9) hue-rotate(180deg) saturate(0
 .resv-chip small { font-family: var(--font-body); font-style: italic; font-weight: 400; font-size: 0.72rem; color: var(--ink-muted); }
 .resv-chip.on { background: var(--vermilion); border-color: var(--vermilion); color: var(--accent-ink); }
 .resv-chip.on small { color: var(--accent-ink); opacity: 0.85; }
+
+/* Guide, Predict, nudges */
+.nudge {
+  display: block; width: 100%; text-align: left;
+  background: var(--bg-sunken); border: 1px dashed var(--rule-strong); border-radius: var(--radius);
+  padding: 0.5rem 0.7rem; margin: 0.4rem 0 0; font-family: var(--font-body); font-style: italic; font-size: 0.92rem; color: var(--ink-soft);
+}
+.back { background: none; border: 0; padding: 0 0 0.4rem; font-family: var(--font-display); font-weight: 600; color: var(--link); font-size: 1rem; }
+.guide-toggle { grid-column: 1 / -1; justify-self: start; background: none; border: 0; padding: 0.1rem 0; font-family: var(--font-display); font-weight: 600; color: var(--link); font-size: 0.95rem; }
+.guide { grid-column: 1 / -1; border-top: 1px solid var(--rule); padding-top: 0.5rem; margin-top: 0.2rem; }
+.guide-h { display: block; font-family: var(--font-display); font-variant: small-caps; letter-spacing: 0.06em; color: var(--gold); font-weight: 700; font-size: 0.9rem; margin-top: 0.3rem; }
+.guide p { margin: 0.1rem 0 0.4rem; font-size: 0.95rem; color: var(--ink-soft); }
+.guide ul { margin: 0.1rem 0 0.3rem 1.1rem; padding: 0; font-size: 0.95rem; color: var(--ink-soft); }
+.seg { display: grid; grid-template-columns: 1fr 1fr; border: 1px solid var(--rule-strong); border-radius: 999px; overflow: hidden; margin: 0 0 0.9rem; }
+.seg button { background: var(--bg-elev); border: 0; padding: 0.5rem; font-family: var(--font-display); font-weight: 600; color: var(--ink-muted); }
+.seg button.on { background: var(--ink); color: var(--bg); }
+.pred .pred-q { font-family: var(--font-display); font-weight: 600; font-size: 1.1rem; margin-bottom: 0.45rem; display: flex; justify-content: space-between; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+.optgrid { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.optbtn {
+  background: var(--bg); border: 1px solid var(--rule-strong); border-radius: 999px;
+  padding: 0.3rem 0.75rem; font-family: var(--font-display); font-weight: 600; font-size: 0.95rem; color: var(--ink-soft);
+}
+.optbtn.on { background: var(--vermilion); border-color: var(--vermilion); color: var(--accent-ink); }
+.others { margin: 0.45rem 0 0; font-size: 0.82rem; font-style: italic; color: var(--ink-faint); }
