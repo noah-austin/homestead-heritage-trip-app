@@ -33,5 +33,5 @@ python3 -m http.server 8000
 ## Deploying
 
 Pushes to `main` publish to GitHub Pages through `.github/workflows/pages.yml`.
-If the first run fails with a Pages error, open **Settings → Pages** in the repository and
-set the source to **GitHub Actions**, then re-run the workflow.
+One-time setup: the repository must be **public** (Pages on a free plan requires it), and
+**Settings → Pages → Source** must be set to **GitHub Actions**. Then re-run the workflow.
