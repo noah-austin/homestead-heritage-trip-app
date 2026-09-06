@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>HomesteadOS</title>
+  <meta name="description" content="An entirely unnecessary web app for one family's day at Homestead Heritage in Elm Mott, Texas." />
+  <meta name="theme-color" content="#f4ecd9" media="(prefers-color-scheme: light)" />
+  <meta name="theme-color" content="#17130f" media="(prefers-color-scheme: dark)" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="HomesteadOS" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="icon.svg" type="image/svg+xml" />
+  <link rel="apple-touch-icon" href="icon.svg" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=EB+Garamond:ital,wght@0,400;0,500;0,600;1,400&display=swap" />
+  <link rel="stylesheet" href="style.css" />
+  <script>
+    // Apply saved theme before paint to avoid a flash.
+    try {
+      var t = localStorage.getItem('homesteados.theme');
+      if (t === 'dark' || t === 'light') document.documentElement.setAttribute('data-theme', t);
+    } catch (e) {}
+  </script>
+</head>
+<body>
+
+  <!-- Boot screen. Entirely unnecessary. -->
+  <div id="boot" class="boot" aria-live="polite">
+    <div class="boot-inner">
+      <div class="boot-mark" aria-hidden="true">
+        <svg viewBox="0 0 64 64" width="72" height="72"><use href="icon.svg#wheel"/></svg>
+      </div>
+      <h1 class="boot-title">HomesteadOS</h1>
+      <p class="boot-ver">v1.0.0 &middot; Waco Release</p>
+      <pre id="bootlog" class="boot-log"></pre>
+      <div class="boot-bar"><span id="bootbar"></span></div>
+    </div>
+  </div>
+
+  <header class="top">
+    <div class="brand">
+      <span class="brand-name">HomesteadOS</span>
+      <span class="brand-sub">A day at Homestead Heritage &middot; Elm Mott, Texas</span>
+    </div>
+    <button id="themeBtn" class="icon-btn" type="button" aria-label="Toggle candlelight mode" title="Candlelight mode">&#9790;</button>
+  </header>
+
+  <main id="app">
+    <section id="view-day" class="view" data-title="The Day"></section>
+    <section id="view-bingo" class="view" data-title="Bingo" hidden></section>
+    <section id="view-score" class="view" data-title="Scoreboard" hidden></section>
+    <section id="view-rate" class="view" data-title="Ratings" hidden></section>
+    <section id="view-more" class="view" data-title="More" hidden></section>
+  </main>
+
+  <nav class="tabs" aria-label="Sections">
+    <button type="button" data-view="day" class="tab is-active"><span class="tab-glyph">&#9788;</span>Day</button>
+    <button type="button" data-view="bingo" class="tab"><span class="tab-glyph">&#9638;</span>Bingo</button>
+    <button type="button" data-view="score" class="tab"><span class="tab-glyph">&#9733;</span>Score</button>
+    <button type="button" data-view="rate" class="tab"><span class="tab-glyph">&#10041;</span>Rate</button>
+    <button type="button" data-view="more" class="tab"><span class="tab-glyph">&#8943;</span>More</button>
+  </nav>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+  <dialog id="modal" class="modal">
+    <div class="modal-body" id="modalBody"></div>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>
