@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '1.5.2';
+  const VERSION = '1.6.0';
   const STORE_KEY = 'homesteados.v1';
 
   /* ------------------------------------------------------------------
@@ -176,12 +176,21 @@
 
   const PREDICTIONS = [
     { id: 'top', q: 'Highest‑rated stop of the day', type: 'shop' },
+    { id: 'lowest', q: 'Lowest‑rated stop of the day', type: 'shop' },
+    { id: 'unanimous', q: 'Will all four of us give some stop the exact same rating?', type: 'yesno' },
     { id: 'first', q: 'Who buys the first thing', type: 'player' },
+    { id: 'spend', q: 'Who spends the most', type: 'player' },
     { id: 'count', q: 'Total purchases, all four of us', type: 'number', options: ['0', '1', '2', '3', '4', '5', '6+'] },
-    { id: 'amish', q: 'Does anyone ask “Is this Amish?”', type: 'yesno' },
     { id: 'late', q: 'How late does the day run', type: 'choice', options: ['On time', '1–15 min', '16–30 min', '31–60 min', 'Don’t ask'] },
+    { id: 'weather', q: 'Weather when we step out of the car', type: 'choice', options: ['Sunny', 'Cloudy', 'Rain', 'Absurdly hot'] },
+    { id: 'bathroom', q: 'First to need a bathroom stop on the drive', type: 'playerOrNone' },
+    { id: 'questions', q: 'Who asks the artisans the most questions', type: 'player' },
     { id: 'photos', q: 'Who takes the most photos', type: 'player' },
-    { id: 'return', q: 'First to say “we should come back”', type: 'player' },
+    { id: 'samples', q: 'Cheese samples taken, all of us combined', type: 'choice', options: ['Under 5', '5–10', '11–20', 'They ask us to leave'] },
+    { id: 'waffle', q: 'Waffle orders at the end', type: 'choice', options: ['All sweet', 'All savory', 'Split', 'Someone skips it'] },
+    { id: 'return', q: 'First to say “we should come back”', type: 'playerOrNone' },
+    { id: 'nap', q: 'Who naps in the car on the way home', type: 'playerOrNone' },
+    { id: 'mvp', q: 'Who wins MVP of the Day', type: 'player' },
   ];
   const PRED_POINTS = 5;
 
@@ -806,22 +815,36 @@
     const r = SHOPS.map((sh) => ({ sh, a: shopAverage(sh.id) })).filter((x) => x.a).sort((a, b) => b.a.avg - a.a.avg);
     return r.length ? r[0].sh.id : null;
   }
+  function lowestRatedShop() {
+    const r = SHOPS.map((sh) => ({ sh, a: shopAverage(sh.id) })).filter((x) => x.a).sort((a, b) => a.a.avg - b.a.avg);
+    return r.length > 1 ? r[0].sh.id : null;   // needs at least two rated stops to mean anything
+  }
+  function unanimousActual() {
+    const full = SHOPS.filter((sh) => S.players.every((pl) => ((S.ratings[pl.id] || {})[sh.id] || {}).n));
+    if (full.some((sh) => new Set(S.players.map((pl) => S.ratings[pl.id][sh.id].n)).size === 1)) return 'yes';
+    return S.done.includes('home') ? 'no' : null;   // "no" is only known once the day is over
+  }
+  const DERIVED = ['top', 'lowest', 'unanimous', 'mvp'];
   function actualFor(q) {
     const manual = (S.actuals[q.id] || {}).v;
     if (q.id === 'top') return manual || topRatedShop();
+    if (q.id === 'lowest') return manual || lowestRatedShop();
+    if (q.id === 'unanimous') return manual || unanimousActual();
+    if (q.id === 'mvp') { const w = supWinners(SUPERLATIVES.find((c) => c.id === 'mvp')); return manual || (w.length === 1 ? w[0] : null); }
     if (q.id === 'late') { const m = measuredDrift(); return manual || (m === null ? null : lateBucket(m)); }
     return manual === undefined ? null : manual;
   }
   function labelFor(q, v) {
     if (v === null || v === undefined || v === '') return '—';
     if (q.type === 'shop') return (SHOPS.find((x) => x.id === v) || {}).name || v;
-    if (q.type === 'player') return (player(v) || {}).name || v;
+    if (q.type === 'player' || q.type === 'playerOrNone') return v === 'nobody' ? 'Nobody' : ((player(v) || {}).name || v);
     if (q.type === 'yesno') return v === 'yes' ? 'Yes' : 'No';
     return String(v);
   }
   function optionsFor(q) {
     if (q.type === 'shop') return SHOPS.map((x) => ({ v: x.id, l: x.name }));
     if (q.type === 'player') return S.players.map((x) => ({ v: x.id, l: x.name }));
+    if (q.type === 'playerOrNone') return S.players.map((x) => ({ v: x.id, l: x.name })).concat([{ v: 'nobody', l: 'Nobody' }]);
     if (q.type === 'yesno') return [{ v: 'yes', l: 'Yes' }, { v: 'no', l: 'No' }];
     return q.options.map((o) => ({ v: o, l: o }));
   }
@@ -883,12 +906,12 @@
       }));
     } else {
       const drift = measuredDrift();
-      const manualQs = PREDICTIONS.filter((q) => !['top'].includes(q.id));
+      const manualQs = PREDICTIONS.filter((q) => !DERIVED.includes(q.id));
       root.innerHTML += `
         <p class="view-intro">Two jobs for the car home: settle what actually happened, then vote the superlatives. ${SUP_POINTS} points to each winner.</p>
         ${tabs}
         <span class="rubric">Settle the day</span>
-        <p class="fine">Highest‑rated stop comes from the Field Guide ratings${drift !== null ? `; lateness was measured at ${drift <= 0 ? 'on time' : drift + ' minutes behind'} when Explore ended` : ''}. The rest, the group decides.</p>
+        <p class="fine">Highest and lowest stop, the unanimous question, and MVP settle themselves from ratings and votes${drift !== null ? `; lateness was measured at ${drift <= 0 ? 'on time' : drift + ' minutes behind'} when Explore ended` : ''}. The rest, the group decides.</p>
         ${manualQs.map((q) => {
           const act = (S.actuals[q.id] || {}).v || (q.id === 'late' ? actualFor(q) : null);
           return `<div class="card pred" data-aq="${q.id}">
@@ -1400,6 +1423,9 @@
   function showNotes() {
     openModal(`
       <h2>Release Notes</h2>
+      <div class="release"><h3>1.6.0 · More Calls</h3><ul>
+        <li>Sixteen predictions. Removed the Amish one, since reading it settled it.</li>
+      </ul></div>
       <div class="release"><h3>1.5.0 · One Address</h3><ul>
         <li>The sync server now serves the app too. One URL, one scoreboard, no setup.</li>
       </ul></div>
