@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '1.3.1';
+  const VERSION = '1.4.0';
   const STORE_KEY = 'homesteados.v1';
 
   /* ------------------------------------------------------------------
@@ -241,7 +241,9 @@
     ratings: {},              // playerId -> shopId -> {n, ts}
     notes: {},                // stopId -> {text, ts}
     done: [],                 // stop ids completed
-    plan: [],                 // chosen explore option ids
+    plan: [],                 // legacy; superseded by picks
+    picks: {},                // optId -> {on, ts}
+    deleted: [],              // tombstoned event ids (so deletes survive merges)
     resv: null,               // {t: '12:00', ts}
     preds: {},                // playerId -> predId -> {v, ts}
     actuals: {},              // predId -> {v, ts}  (group-settled answers)
@@ -254,6 +256,8 @@
   });
 
   let S = load();
+  (S.plan || []).forEach((id) => { if (!S.picks[id]) S.picks[id] = { on: true, ts: 0 }; });
+  S.plan = [];
   STOPS = buildStops();
 
   function load() {
@@ -265,6 +269,7 @@
   }
   function save() {
     try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); } catch (e) { /* private mode, etc. */ }
+    roomDirty();
   }
 
   const HOUSEHOLDS = { Austins: ['noah', 'jill'], Martins: ['blake', 'megan'] };
@@ -397,10 +402,12 @@
   let openStop = null;      // expanded timeline row
   let editingNote = null;   // stop id whose note editor is open
 
+  const picked = (id) => !!((S.picks[id] || {}).on);
+  const pickedIds = () => EXPLORE.filter((o) => picked(o.id)).map((o) => o.id);
   function exploreVerdict() {
     const W = exploreWindow();
-    const planMin = EXPLORE.filter((o) => S.plan.includes(o.id)).reduce((a, o) => a + o.min, 0);
-    if (!S.plan.length) return `${W} minutes to fill. Nothing picked yet; the gristmill is the safe first choice.`;
+    const planMin = EXPLORE.filter((o) => picked(o.id)).reduce((a, o) => a + o.min, 0);
+    if (!pickedIds().length) return `${W} minutes to fill. Nothing picked yet; the gristmill is the safe first choice.`;
     if (planMin <= W - 20) return `${planMin} of ${W} minutes spoken for. Comfortable. Add something.`;
     if (planMin <= W) return `${planMin} of ${W} minutes spoken for. Tight but honest.`;
     return `${planMin} minutes picked for a ${W}‑minute window. This is a family, not a schedule; something gives.`;
@@ -433,7 +440,7 @@
       ${s.resv ? resvPicker() : ''}
       ${s.directions ? `<ol class="directions">${s.directions.map((x) => `<li>${esc(x)}</li>`).join('')}</ol>${routeStrip()}` : ''}
       ${s.map ? `<div class="map-wrap"><iframe class="map" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="Map to Homestead Heritage" src="https://www.google.com/maps?q=Homestead+Heritage,+608+Dry+Creek+Rd,+Waco,+TX+76705&z=9&output=embed"></iframe></div>` : ''}
-      ${s.options ? `<div class="picks">${EXPLORE.map((o) => `<button type="button" class="pick ${S.plan.includes(o.id) ? 'on' : ''}" data-opt="${o.id}" aria-pressed="${S.plan.includes(o.id)}"><span>${esc(o.name)}</span><span class="pick-min">${o.min}m</span></button>`).join('')}</div>
+      ${s.options ? `<div class="picks">${EXPLORE.map((o) => `<button type="button" class="pick ${picked(o.id) ? 'on' : ''}" data-opt="${o.id}" aria-pressed="${picked(o.id)}"><span>${esc(o.name)}</span><span class="pick-min">${o.min}m</span></button>`).join('')}</div>
         <p class="verdict">${esc(exploreVerdict())}</p>` : ''}
       ${s.map || s.link ? `<div class="btn-row">
         ${s.map ? `<a class="btn small primary" href="https://www.google.com/maps/dir/?api=1&destination=Homestead+Heritage,+608+Dry+Creek+Rd,+Waco,+TX+76705&waypoints=Summer+Moon+Coffee,+4217+Benner+Rd,+Kyle,+TX+78640&travelmode=driving" target="_blank" rel="noopener">Directions via Summer Moon</a>
@@ -562,7 +569,7 @@
     // Explore picks
     $$('[data-opt]', root).forEach((b) => b.addEventListener('click', () => {
       const id = b.dataset.opt;
-      S.plan = S.plan.includes(id) ? S.plan.filter((x) => x !== id) : S.plan.concat(id);
+      S.picks[id] = { on: !picked(id), ts: Date.now() };
       save();
       const y = window.scrollY; renderDay(); window.scrollTo({ top: y });
     }));
@@ -631,9 +638,10 @@
       const cur = new Set(S.bingo[p.id] || []);
       if (cur.has(i)) {
         cur.delete(i);
-        S.events = S.events.filter((e) => e.id !== `sq-${p.id}-${i}`);
+        S.events = S.events.filter((e) => e.id !== `sq-${p.id}-${i}`); S.deleted.push(`sq-${p.id}-${i}`);
       } else {
         cur.add(i);
+        S.deleted = S.deleted.filter((d) => d !== `sq-${p.id}-${i}`);
         addEvent({ id: `sq-${p.id}-${i}`, player: p.id, label: 'Bingo square: ' + card[i], points: 1 });
       }
       S.bingo[p.id] = Array.from(cur).sort((a, b) => a - b);
@@ -713,7 +721,7 @@
         const [, pid, idx] = ev.id.split('-');
         S.bingo[pid] = (S.bingo[pid] || []).filter((i) => i !== Number(idx));
       }
-      S.events = S.events.filter((e) => e.id !== b.dataset.del);
+      S.events = S.events.filter((e) => e.id !== b.dataset.del); S.deleted.push(b.dataset.del);
       save(); renderScore();
     }));
   }
@@ -957,7 +965,7 @@
         <li><button type="button" data-go="bingo">Homestead Bingo <small>For the watchful. Optional.</small><span class="arrow">›</span></button></li>
         <li><button type="button" data-go="report">Trip Report <small>Charts nobody asked for</small><span class="arrow">›</span></button></li>
         <li><button type="button" data-go="primer">Who Are These People? <small>A short, fair primer on Homestead Heritage</small><span class="arrow">›</span></button></li>
-        <li><button type="button" data-go="sync">Sync Phones <small>Text a link, merge the scores</small><span class="arrow">›</span></button></li>
+        <li><button type="button" data-go="sync">Sync by Link <small>Fallback when the family room is off</small><span class="arrow">›</span></button></li>
         <li><button type="button" data-go="settings">Settings <small>Players, and toggles that do nothing</small><span class="arrow">›</span></button></li>
         <li><button type="button" data-go="notes">Release Notes <small>v${VERSION}</small><span class="arrow">›</span></button></li>
         <li><button type="button" data-go="privacy">Privacy Policy <small>Short</small><span class="arrow">›</span></button></li>
@@ -1085,8 +1093,11 @@
     enc: (bytes) => btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''),
     dec: (str) => Uint8Array.from(atob(str.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0)),
   };
+  function snapshot() {
+    return { players: S.players, bingo: S.bingo, events: S.events, deleted: S.deleted, ratings: S.ratings, notes: S.notes, done: S.done, picks: S.picks, resv: S.resv, preds: S.preds, actuals: S.actuals, votes: S.votes, doneAt: S.doneAt, now: S.now };
+  }
   async function encodeState() {
-    const json = JSON.stringify({ players: S.players, bingo: S.bingo, events: S.events, ratings: S.ratings, notes: S.notes, done: S.done, plan: S.plan, resv: S.resv, preds: S.preds, actuals: S.actuals, votes: S.votes, doneAt: S.doneAt, now: S.now });
+    const json = JSON.stringify(snapshot());
     const bytes = new TextEncoder().encode(json);
     if (typeof CompressionStream === 'function') {
       const cs = new CompressionStream('deflate-raw');
@@ -1114,7 +1125,9 @@
       cells.forEach((c) => cur.add(c));
       S.bingo[pid] = Array.from(cur).sort((a, b) => a - b); n += cur.size - before;
     });
-    (remote.events || []).forEach((e) => { if (!S.events.some((x) => x.id === e.id)) { S.events.push(e); n++; } });
+    (remote.deleted || []).forEach((id) => { if (!S.deleted.includes(id)) { S.deleted.push(id); n++; } });
+    (remote.events || []).forEach((e) => { if (!S.deleted.includes(e.id) && !S.events.some((x) => x.id === e.id)) { S.events.push(e); n++; } });
+    const beforeLen = S.events.length; S.events = S.events.filter((e) => !S.deleted.includes(e.id) || e.id.startsWith('pred-') || e.id.startsWith('sup-')); n += beforeLen - S.events.length;
     Object.entries(remote.ratings || {}).forEach(([pid, shops]) => {
       S.ratings[pid] = S.ratings[pid] || {};
       Object.entries(shops).forEach(([sid, r]) => {
@@ -1127,7 +1140,8 @@
       if (!cur || (note.ts || 0) > (cur.ts || 0)) { S.notes[sid] = note; n++; }
     });
     (remote.done || []).forEach((d) => { if (!S.done.includes(d)) { S.done.push(d); n++; } });
-    (remote.plan || []).forEach((d) => { if (!S.plan.includes(d)) { S.plan.push(d); n++; } });
+    (remote.plan || []).forEach((d) => { if (!S.picks[d]) { S.picks[d] = { on: true, ts: 0 }; n++; } });
+    Object.entries(remote.picks || {}).forEach(([k, v]) => { const cur = S.picks[k]; if (!cur || (v.ts || 0) > (cur.ts || 0)) { S.picks[k] = v; n++; } });
     if (remote.resv && (!S.resv || (remote.resv.ts || 0) > (S.resv.ts || 0))) { S.resv = remote.resv; n++; }
     const lww2 = (mine, theirs) => { Object.entries(theirs || {}).forEach(([k1, inner]) => { mine[k1] = mine[k1] || {}; Object.entries(inner || {}).forEach(([k2, v]) => { const cur = mine[k1][k2]; if (!cur || (v.ts || 0) > (cur.ts || 0)) { mine[k1][k2] = v; n++; } }); }); };
     lww2(S.preds, remote.preds); lww2(S.votes, remote.votes);
@@ -1141,6 +1155,77 @@
     S.setup = S.setup || S.players.length > 0;
     return n;
   }
+
+  /* Family room: live sync through the mailbox server (server/ on Railway). */
+  const ROOM_DEFAULT_URL = '';                 // baked in once the Railway URL exists
+  const ROOM_DEFAULT_CODE = 'austins-martins';
+  const room = { url: ROOM_DEFAULT_URL, code: ROOM_DEFAULT_CODE, client: null, dirty: true, since: 0, lastOk: 0, status: 'off', pushTimer: null, timer: null, inflight: false };
+  try {
+    const cfg = JSON.parse(localStorage.getItem('homesteados.room') || '{}');
+    if (typeof cfg.url === 'string') room.url = cfg.url;
+    if (typeof cfg.code === 'string' && cfg.code) room.code = cfg.code;
+    room.client = localStorage.getItem('homesteados.client');
+    if (!room.client) { room.client = uid() + uid(); localStorage.setItem('homesteados.client', room.client); }
+  } catch (e) { room.client = room.client || uid(); }
+  const roomOn = () => /^https?:\/\//.test(room.url) && /^[A-Za-z0-9_-]{1,64}$/.test(room.code);
+  const roomBase = () => room.url.replace(/\/+$/, '') + '/room/' + encodeURIComponent(room.code);
+
+  function saveRoomCfg() { try { localStorage.setItem('homesteados.room', JSON.stringify({ url: room.url, code: room.code })); } catch (e) {} }
+  function roomDirty() {
+    room.dirty = true;
+    if (!roomOn()) return;
+    clearTimeout(room.pushTimer);
+    room.pushTimer = setTimeout(roomTick, 800);      // push soon after a change
+  }
+  function setRoomStatus(st) {
+    room.status = st;
+    const el = $('#syncDot'); if (!el) return;
+    el.dataset.status = st;
+    el.title = st === 'ok' ? 'Family room: connected' : st === 'error' ? 'Family room: cannot reach server' : 'Family room: off';
+    el.hidden = st === 'off';
+  }
+  async function roomTick() {
+    if (!roomOn() || room.inflight) return;
+    if (document.visibilityState === 'hidden') return;
+    room.inflight = true;
+    try {
+      if (room.dirty) {
+        const r = await fetch(`${roomBase()}/${room.client}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(snapshot()) });
+        if (!r.ok) throw new Error('push ' + r.status);
+        room.dirty = false;
+      }
+      const r2 = await fetch(`${roomBase()}?since=${room.since}`, { cache: 'no-store' });
+      if (!r2.ok) throw new Error('pull ' + r2.status);
+      const data = await r2.json();
+      let n = 0;
+      Object.entries(data.clients || {}).forEach(([cid, entry]) => {
+        if (cid === room.client || !entry || !entry.state) return;
+        n += merge(entry.state);
+      });
+      room.since = data.now || Date.now();
+      room.lastOk = Date.now();
+      setRoomStatus('ok');
+      if (n) {
+        try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); } catch (e) {}
+        room.dirty = true;                          // share the merged whole back out
+        if (!$('#modal').open) { const y = window.scrollY; rerender(); window.scrollTo({ top: y }); }
+      }
+    } catch (e) {
+      setRoomStatus('error');
+    } finally {
+      room.inflight = false;
+    }
+  }
+  function startRoom() {
+    clearInterval(room.timer);
+    if (!roomOn()) { setRoomStatus('off'); return; }
+    room.since = 0; room.dirty = true;
+    setRoomStatus('error');
+    roomTick();
+    room.timer = setInterval(roomTick, 4000);
+  }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') { room.since = 0; roomTick(); } });
+  window.addEventListener('online', () => roomTick());
 
   async function showSync() {
     const code = await encodeState();
@@ -1190,6 +1275,14 @@
       </ul>
       <form data-add class="custom-row" style="grid-template-columns:1fr auto"><input type="text" name="name" placeholder="Add a person" /><button class="btn small" type="submit">Add</button></form>
       <hr class="rule" />
+      <span class="rubric">Family room</span>
+      <p class="fine">Live sync between phones through a tiny server. Everyone with the same room code sees the same ratings, predictions, and votes within a few seconds. Leave the server blank to stay offline and use texted links instead.</p>
+      <label class="fine" for="roomUrl">Server</label>
+      <input type="url" id="roomUrl" value="${esc(room.url)}" placeholder="https://your-service.up.railway.app" autocapitalize="off" autocorrect="off" />
+      <label class="fine" for="roomCode" style="margin-top:0.4rem;display:block">Room code</label>
+      <input type="text" id="roomCode" value="${esc(room.code)}" autocapitalize="off" autocorrect="off" />
+      <div class="btn-row"><button type="button" class="btn small primary" data-room-save>Connect</button><span class="fine" data-room-status>${room.status === 'ok' ? 'Connected.' : room.status === 'error' ? 'Cannot reach the server.' : 'Off.'}</span></div>
+      <hr class="rule" />
       <div class="setting"><div><span class="lbl">Sabbath mode</span><small>Reminds you the village is closed on Sundays. It is closed on Sundays regardless.</small></div><button type="button" class="toggle ${S.settings.sabbath ? 'on' : ''}" data-toggle="sabbath" aria-pressed="${S.settings.sabbath}"></button></div>
       <div class="setting"><div><span class="lbl">Haptic feedback</span><small>Where supported. Otherwise provided by gravel.</small></div><button type="button" class="toggle ${S.settings.haptics ? 'on' : ''}" data-toggle="haptics" aria-pressed="${S.settings.haptics}"></button></div>
       <div class="setting"><div><span class="lbl">Push notifications</span><small>Handled in person by whoever is most hungry.</small></div><button type="button" class="toggle ${S.settings.push ? 'on' : ''}" data-toggle="push" aria-pressed="${S.settings.push}"></button></div>
@@ -1219,6 +1312,12 @@
         b.classList.toggle('on', S.settings[k]); b.setAttribute('aria-pressed', S.settings[k]);
         if (k === 'push' && S.settings.push) toast('Notification: someone is hungry.');
       }));
+      $('[data-room-save]', m).addEventListener('click', async () => {
+        room.url = $('#roomUrl', m).value.trim(); room.code = $('#roomCode', m).value.trim() || ROOM_DEFAULT_CODE;
+        saveRoomCfg(); startRoom();
+        const st = $('[data-room-status]', m); st.textContent = roomOn() ? 'Connecting…' : 'Off.';
+        setTimeout(() => { st.textContent = room.status === 'ok' ? 'Connected.' : room.status === 'error' ? 'Cannot reach the server. Check the URL.' : 'Off.'; }, 1500);
+      });
       $('[data-reset]', m).addEventListener('click', () => {
         if (confirm('Reset everything on this phone? Scores, bingo, ratings, notes. There is no undo, as in life.')) {
           S = emptyState(); save(); closeModal(); show('day'); setupPlayers();
@@ -1263,6 +1362,10 @@
   function showNotes() {
     openModal(`
       <h2>Release Notes</h2>
+      <div class="release"><h3>1.4.0 · Family Room</h3><ul>
+        <li>Live sync between phones through a small server on Railway. Ratings, predictions, and votes appear everywhere within seconds.</li>
+        <li>Deleting a score now sticks across phones. Explore picks no longer resurrect themselves.</li>
+      </ul></div>
       <div class="release"><h3>1.3.1</h3><ul>
         <li>Road Questions shipped, after the developer was asked where they were.</li>
         <li>Guide renamed back to Rate. Scoreboard joins Bingo under More.</li>
@@ -1337,5 +1440,7 @@
 
   show('day');
   handleIncomingSync().then(rerender);
+  $('#syncDot').addEventListener('click', showSettings);
+  startRoom();
   boot();
 })();

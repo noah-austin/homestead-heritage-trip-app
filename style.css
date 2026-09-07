@@ -796,3 +796,14 @@ html[data-theme='dark'] .map { filter: invert(0.9) hue-rotate(180deg) saturate(0
 .road-q { font-family: var(--font-display); font-size: 1.7rem; line-height: 1.25; font-weight: 600; margin: 0; color: var(--ink); text-wrap: balance; }
 .road-nav { display: grid; grid-template-columns: 1fr auto 1fr; gap: 0.5rem; align-items: center; }
 .road-nav .btn:disabled { opacity: 0.4; }
+
+/* Family room status */
+.top-actions { display: flex; align-items: center; gap: 0.5rem; }
+.sync-dot {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  background: none; border: 1px solid var(--rule-strong); border-radius: 999px;
+  padding: 0.25rem 0.7rem; font-family: var(--font-display); font-weight: 600; font-size: 0.85rem; color: var(--ink-muted);
+}
+.sync-dot .dot { width: 0.55rem; height: 0.55rem; border-radius: 50%; background: var(--ink-faint); }
+.sync-dot[data-status='ok'] .dot { background: var(--verdigris); box-shadow: 0 0 0 3px rgb(59 117 102 / 0.2); }
+.sync-dot[data-status='error'] .dot { background: var(--vermilion); }

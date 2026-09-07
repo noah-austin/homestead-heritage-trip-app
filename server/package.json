@@ -1,0 +1,9 @@
+{
+  "name": "homesteados-family-room",
+  "version": "1.0.0",
+  "description": "Mailbox server that lets HomesteadOS phones share state.",
+  "private": true,
+  "main": "index.js",
+  "scripts": { "start": "node index.js" },
+  "engines": { "node": ">=18" }
+}

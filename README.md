@@ -18,13 +18,15 @@ My family teased me for making web apps for everything. This is the response.
 - **Scoreboard.** Under More. Points awarded by whoever is holding the phone, plus the ones that settle themselves.
 - **Bingo.** Under More, for the watchful. Everyone gets their own 5×5 card.
 - **Trip Report.** Stats, a bar chart, and a pie chart of pie.
-- **Sync Phones.** No server; phones merge by texting each other a link.
+- **Family room.** Live sync between phones through a tiny mailbox server (`server/`, built for
+  Railway). Phones push their own state and merge everyone else's every few seconds. Without a
+  server, phones can still merge by texting each other a link.
 - **Settings.** Players, plus toggles that do nothing, plus one that does (candlelight mode).
 
 ## How it is built
 
-Plain HTML, CSS, and JavaScript. No build step, no framework, no backend. State lives in
-`localStorage`. The parchment-and-ink look borrows the design tokens from
+Plain HTML, CSS, and JavaScript. No build step, no framework. State lives in `localStorage`;
+the optional `server/` is a zero-dependency Node mailbox so phones can share it (see its README). The parchment-and-ink look borrows the design tokens from
 [Commonplace](https://noah-austin.github.io/Theology-Site/).
 
 Open `index.html` in a browser, or serve the folder with anything:
