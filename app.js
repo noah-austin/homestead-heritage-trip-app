@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '1.4.0';
+  const VERSION = '1.4.1';
   const STORE_KEY = 'homesteados.v1';
 
   /* ------------------------------------------------------------------
@@ -1159,7 +1159,7 @@
   /* Family room: live sync through the mailbox server (server/ on Railway). */
   const ROOM_DEFAULT_URL = 'https://homestead-heritage-trip-app-production.up.railway.app';
   const ROOM_DEFAULT_CODE = 'austins-martins';
-  const room = { url: ROOM_DEFAULT_URL, code: ROOM_DEFAULT_CODE, client: null, dirty: true, since: 0, lastOk: 0, status: 'off', pushTimer: null, timer: null, inflight: false };
+  const room = { url: ROOM_DEFAULT_URL, code: ROOM_DEFAULT_CODE, client: null, dirty: true, since: 0, lastOk: 0, status: 'off', pushTimer: null, timer: null, inflight: false, lastError: '', peers: 0, merged: 0 };
   try {
     const cfg = JSON.parse(localStorage.getItem('homesteados.room') || '{}');
     if (cfg.url) room.url = cfg.url;   // a blank saved value falls back to the default
@@ -1191,19 +1191,21 @@
     try {
       if (room.dirty) {
         const r = await fetch(`${roomBase()}/${room.client}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(snapshot()) });
-        if (!r.ok) throw new Error('push ' + r.status);
+        if (!r.ok) throw new Error('push failed: HTTP ' + r.status);
         room.dirty = false;
       }
       const r2 = await fetch(`${roomBase()}?since=${room.since}`, { cache: 'no-store' });
-      if (!r2.ok) throw new Error('pull ' + r2.status);
+      if (!r2.ok) throw new Error('pull failed: HTTP ' + r2.status);
       const data = await r2.json();
+      if (!data || typeof data.clients !== 'object') throw new Error('server answered, but not with room data (is Root Directory set to server?)');
+      room.peers = Math.max(0, (data.count || 0) - 1);
       let n = 0;
       Object.entries(data.clients || {}).forEach(([cid, entry]) => {
         if (cid === room.client || !entry || !entry.state) return;
         n += merge(entry.state);
       });
       room.since = data.now || Date.now();
-      room.lastOk = Date.now();
+      room.lastOk = Date.now(); room.lastError = ''; room.merged += n;
       setRoomStatus('ok');
       if (n) {
         try { localStorage.setItem(STORE_KEY, JSON.stringify(S)); } catch (e) {}
@@ -1211,10 +1213,18 @@
         if (!$('#modal').open) { const y = window.scrollY; rerender(); window.scrollTo({ top: y }); }
       }
     } catch (e) {
+      room.lastError = (e && e.message) || String(e);
       setRoomStatus('error');
     } finally {
       room.inflight = false;
+      const el = $('[data-room-status]'); if (el) el.textContent = roomStatusText();
     }
+  }
+  function roomStatusText() {
+    if (!roomOn()) return 'Off: no server address.';
+    if (room.status === 'ok') return `Connected. ${room.peers} other phone${room.peers === 1 ? '' : 's'} in the room, last sync ${room.lastOk ? fmtTime(room.lastOk) : 'never'}, ${room.merged} change${room.merged === 1 ? '' : 's'} received.`;
+    if (room.status === 'error') return 'Not connected. ' + (room.lastError || 'No response yet.');
+    return 'Connecting…';
   }
   function startRoom() {
     clearInterval(room.timer);
@@ -1275,13 +1285,15 @@
       </ul>
       <form data-add class="custom-row" style="grid-template-columns:1fr auto"><input type="text" name="name" placeholder="Add a person" /><button class="btn small" type="submit">Add</button></form>
       <hr class="rule" />
-      <span class="rubric">Family room</span>
-      <p class="fine">Live sync between phones through a tiny server. Everyone with the same room code sees the same ratings, predictions, and votes within a few seconds. The server is preset; you only need this if it ever moves.</p>
-      <label class="fine" for="roomUrl">Server</label>
-      <input type="url" id="roomUrl" value="${esc(room.url)}" placeholder="https://your-service.up.railway.app" autocapitalize="off" autocorrect="off" />
-      <label class="fine" for="roomCode" style="margin-top:0.4rem;display:block">Room code</label>
-      <input type="text" id="roomCode" value="${esc(room.code)}" autocapitalize="off" autocorrect="off" />
-      <div class="btn-row"><button type="button" class="btn small primary" data-room-save>Connect</button><span class="fine" data-room-status>${room.status === 'ok' ? 'Connected.' : room.status === 'error' ? 'Cannot reach the server.' : 'Off.'}</span></div>
+      <span class="rubric">Live sync</span>
+      <p class="fine">Every phone that opens this site shares one scoreboard through a small server. Changes should show up on the other phones within a few seconds.</p>
+      <p class="fine" data-room-status>${roomStatusText()}</p>
+      <div class="btn-row"><button type="button" class="btn small" data-room-test>Test connection</button><button type="button" class="btn small quiet" data-room-now>Sync now</button></div>
+      <p class="fine" data-room-test-out></p>
+      <details class="fine"><summary>Server address (only if it moves)</summary>
+        <input type="url" id="roomUrl" value="${esc(room.url)}" placeholder="https://your-service.up.railway.app" autocapitalize="off" autocorrect="off" style="margin-top:0.4rem" />
+        <div class="btn-row"><button type="button" class="btn small" data-room-save>Use this server</button></div>
+      </details>
       <hr class="rule" />
       <div class="setting"><div><span class="lbl">Sabbath mode</span><small>Reminds you the village is closed on Sundays. It is closed on Sundays regardless.</small></div><button type="button" class="toggle ${S.settings.sabbath ? 'on' : ''}" data-toggle="sabbath" aria-pressed="${S.settings.sabbath}"></button></div>
       <div class="setting"><div><span class="lbl">Haptic feedback</span><small>Where supported. Otherwise provided by gravel.</small></div><button type="button" class="toggle ${S.settings.haptics ? 'on' : ''}" data-toggle="haptics" aria-pressed="${S.settings.haptics}"></button></div>
@@ -1312,11 +1324,21 @@
         b.classList.toggle('on', S.settings[k]); b.setAttribute('aria-pressed', S.settings[k]);
         if (k === 'push' && S.settings.push) toast('Notification: someone is hungry.');
       }));
-      $('[data-room-save]', m).addEventListener('click', async () => {
-        room.url = $('#roomUrl', m).value.trim(); room.code = $('#roomCode', m).value.trim() || ROOM_DEFAULT_CODE;
+      $('[data-room-save]', m).addEventListener('click', () => {
+        room.url = $('#roomUrl', m).value.trim() || ROOM_DEFAULT_URL;
         saveRoomCfg(); startRoom();
-        const st = $('[data-room-status]', m); st.textContent = roomOn() ? 'Connecting…' : 'Off.';
-        setTimeout(() => { st.textContent = room.status === 'ok' ? 'Connected.' : room.status === 'error' ? 'Cannot reach the server. Check the URL.' : 'Off.'; }, 1500);
+        $('[data-room-status]', m).textContent = 'Connecting…';
+      });
+      $('[data-room-now]', m).addEventListener('click', () => { room.since = 0; room.dirty = true; roomTick(); });
+      $('[data-room-test]', m).addEventListener('click', async () => {
+        const out = $('[data-room-test-out]', m); out.textContent = `Reaching ${room.url} …`;
+        try {
+          const r = await fetch(room.url.replace(/\/+$/, '') + '/', { cache: 'no-store' });
+          const text = await r.text();
+          out.textContent = `HTTP ${r.status}. ` + (text.includes('family room') ? 'That is the sync server. Good.' : `That is not the sync server. It answered: ${text.slice(0, 120)}`);
+        } catch (e) {
+          out.textContent = `Could not reach it: ${(e && e.message) || e}. On the phone, open ${room.url} in the browser; it should show a line mentioning “family room”.`;
+        }
       });
       $('[data-reset]', m).addEventListener('click', () => {
         if (confirm('Reset everything on this phone? Scores, bingo, ratings, notes. There is no undo, as in life.')) {
