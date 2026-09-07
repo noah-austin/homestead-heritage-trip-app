@@ -5,7 +5,8 @@ An entirely unnecessary web app for one family's day at
 
 My family teased me for making web apps for everything. This is the response.
 
-**Live:** https://noah-austin.github.io/homestead-heritage-trip-app/
+**Live (with sync):** https://homestead-heritage-trip-app-production.up.railway.app/
+**Mirror (static):** https://noah-austin.github.io/homestead-heritage-trip-app/
 
 ## What it does
 
@@ -40,3 +41,12 @@ python3 -m http.server 8000
 Pushes to `main` publish to GitHub Pages through `.github/workflows/pages.yml`.
 One-time setup: the repository must be **public** (Pages on a free plan requires it), and
 **Settings → Pages → Source** must be set to **GitHub Actions**. Then re-run the workflow.
+
+## Running the sync server
+
+```bash
+npm start            # serves the app and the sync API on http://localhost:3000
+```
+
+On Railway: deploy this repository with **Root Directory left empty**. The root `package.json`
+starts the server, which serves the app and the `/room/...` sync API on the same domain.

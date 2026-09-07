@@ -7,10 +7,11 @@ within seconds, so nothing is lost.
 
 ## Deploy on Railway
 
-1. New Project → Deploy from GitHub repo → this repository.
-2. In the service settings, set **Root Directory** to `server`. Railway detects Node and runs `npm start`.
-3. Settings → Networking → **Generate Domain**. Copy the URL.
-4. Paste that URL into the app under More → Settings → Family room, or hand it to whoever maintains the app to bake in.
+1. New Project → Deploy from GitHub repo → this repository. Leave **Root Directory** empty:
+   the root `package.json` starts this server, and the server also serves the app itself.
+2. Settings → Networking → **Generate Domain**. That URL is the whole app: open it on every phone.
+
+Health check: `/api/health` returns JSON mentioning "family room".
 
 Optional: attach a Volume mounted anywhere; the server writes `rooms.json` there.
 

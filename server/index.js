@@ -13,6 +13,26 @@ const FILE = path.join(DATA_DIR, 'rooms.json');
 const MAX_BODY = 512 * 1024;                 // a day of cheese ratings is a few KB
 const STALE_MS = 3 * 24 * 60 * 60 * 1000;    // forget phones silent for 3 days
 
+// Serve the app too, so one address does everything. Looks for index.html
+// next to this folder (repo root) or in server/public.
+const STATIC_DIR = [path.join(__dirname, '..'), path.join(__dirname, 'public')]
+  .find((d) => fs.existsSync(path.join(d, 'index.html'))) || null;
+const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
+  '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json', '.json': 'application/json', '.png': 'image/png', '.txt': 'text/plain; charset=utf-8', '.md': 'text/plain; charset=utf-8' };
+
+function serveStatic(req, res, pathname) {
+  if (!STATIC_DIR) return false;
+  let rel = decodeURIComponent(pathname);
+  if (rel === '/' || rel === '') rel = '/index.html';
+  if (rel.includes('..') || rel.startsWith('/server') || rel.startsWith('/.') || rel.includes('/.')) return false;
+  const file = path.join(STATIC_DIR, rel);
+  if (!file.startsWith(STATIC_DIR) || !fs.existsSync(file) || !fs.statSync(file).isFile()) return false;
+  const type = TYPES[path.extname(file).toLowerCase()] || 'application/octet-stream';
+  res.writeHead(200, Object.assign({ 'Content-Type': type, 'Cache-Control': 'no-cache' }, CORS));
+  fs.createReadStream(file).pipe(res);
+  return true;
+}
+
 let rooms = {};
 try { rooms = JSON.parse(fs.readFileSync(FILE, 'utf8')); } catch (e) { rooms = {}; }
 let dirty = false;
@@ -44,10 +64,15 @@ http.createServer((req, res) => {
   const url = new URL(req.url, 'http://x');
   const parts = url.pathname.split('/').filter(Boolean);
 
-  if (parts.length === 0) {
-    return send(res, 200, { ok: true, service: 'HomesteadOS family room', rooms: Object.keys(rooms).length });
+  if (url.pathname === '/api/health') {
+    return send(res, 200, { ok: true, service: 'HomesteadOS family room', rooms: Object.keys(rooms).length, servingApp: !!STATIC_DIR });
   }
-  if (parts[0] !== 'room' || !parts[1] || !ID.test(parts[1]) || (parts[2] && !ID.test(parts[2]))) {
+  if (parts[0] !== 'room') {
+    if (req.method === 'GET' && serveStatic(req, res, url.pathname)) return;
+    if (parts.length === 0) return send(res, 200, { ok: true, service: 'HomesteadOS family room', rooms: Object.keys(rooms).length });
+    return send(res, 404, { error: 'not found' });
+  }
+  if (!parts[1] || !ID.test(parts[1]) || (parts[2] && !ID.test(parts[2]))) {
     return send(res, 404, { error: 'not found' });
   }
   const roomId = parts[1];
@@ -85,4 +110,4 @@ http.createServer((req, res) => {
   }
 
   return send(res, 405, { error: 'method not allowed' });
-}).listen(PORT, () => console.log(`family room listening on ${PORT}, data at ${FILE}`));
+}).listen(PORT, () => console.log(`family room listening on ${PORT}, data at ${FILE}, app ${STATIC_DIR ? 'served from ' + STATIC_DIR : 'not served'}`));

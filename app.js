@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '1.4.1';
+  const VERSION = '1.5.0';
   const STORE_KEY = 'homesteados.v1';
 
   /* ------------------------------------------------------------------
@@ -1226,8 +1226,18 @@
     if (room.status === 'error') return 'Not connected. ' + (room.lastError || 'No response yet.');
     return 'Connecting…';
   }
-  function startRoom() {
+  let sameOriginChecked = false;
+  async function startRoom() {
     clearInterval(room.timer);
+    // If this very page is served by the sync server, talk to it directly: same origin, no CORS, no cache games.
+    if (!sameOriginChecked && /^https?:/.test(location.protocol)) {
+      sameOriginChecked = true;
+      try {
+        const r = await fetch(location.origin + '/api/health', { cache: 'no-store' });
+        const j = r.ok ? await r.json() : null;
+        if (j && /family room/.test(j.service || '')) { room.url = location.origin; }
+      } catch (e) { /* not served by the sync server; use the configured address */ }
+    }
     if (!roomOn()) { setRoomStatus('off'); return; }
     room.since = 0; room.dirty = true;
     setRoomStatus('error');
@@ -1384,6 +1394,9 @@
   function showNotes() {
     openModal(`
       <h2>Release Notes</h2>
+      <div class="release"><h3>1.5.0 · One Address</h3><ul>
+        <li>The sync server now serves the app too. One URL, one scoreboard, no setup.</li>
+      </ul></div>
       <div class="release"><h3>1.4.0 · Family Room</h3><ul>
         <li>Live sync between phones through a small server on Railway. Ratings, predictions, and votes appear everywhere within seconds.</li>
         <li>Deleting a score now sticks across phones. Explore picks no longer resurrect themselves.</li>
