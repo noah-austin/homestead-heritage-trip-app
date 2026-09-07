@@ -785,3 +785,14 @@ html[data-theme='dark'] .map { filter: invert(0.9) hue-rotate(180deg) saturate(0
 }
 .optbtn.on { background: var(--vermilion); border-color: var(--vermilion); color: var(--accent-ink); }
 .others { margin: 0.45rem 0 0; font-size: 0.82rem; font-style: italic; color: var(--ink-faint); }
+
+/* Road questions */
+.road-card {
+  background: var(--bg-elev); border: 1px solid var(--rule-strong); border-radius: 6px; box-shadow: var(--shadow);
+  padding: 1.6rem 1.3rem 1.8rem; margin: 0.4rem 0 0.9rem; min-height: 14rem;
+  display: flex; flex-direction: column; justify-content: center; position: relative;
+}
+.road-count { position: absolute; top: 0.7rem; right: 0.9rem; font-size: 0.8rem; font-style: italic; color: var(--ink-faint); }
+.road-q { font-family: var(--font-display); font-size: 1.7rem; line-height: 1.25; font-weight: 600; margin: 0; color: var(--ink); text-wrap: balance; }
+.road-nav { display: grid; grid-template-columns: 1fr auto 1fr; gap: 0.5rem; align-items: center; }
+.road-nav .btn:disabled { opacity: 0.4; }

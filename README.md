@@ -10,11 +10,12 @@ My family teased me for making web apps for everything. This is the response.
 ## What it does
 
 - **The Day.** The schedule (pickup, Summer Moon in Kyle, the drive, lunch at Café Homestead, explore, waffles at Waco Waffle Co. for dessert, gone by three), derived from whichever café reservation you pick, directions with a map, an Explore planner that adds up minutes, and a field-notes box for every stop.
-- **Field Guide.** What to notice at each stop, two questions to ask the artisan, and the
-  five-loaf rating with family averages.
+- **Rate.** The five-loaf rating with family averages, and a field guide under each stop: what to
+  notice and two questions to ask the artisan.
 - **Predict.** Predictions locked in on the drive up, settled on the drive home, plus superlatives
   voted in the car. Correct calls and wins feed the scoreboard automatically.
-- **Scoreboard.** Points awarded by whoever is holding the phone, plus the ones that settle themselves.
+- **Road.** Twenty questions for the car, some light, some not.
+- **Scoreboard.** Under More. Points awarded by whoever is holding the phone, plus the ones that settle themselves.
 - **Bingo.** Under More, for the watchful. Everyone gets their own 5×5 card.
 - **Trip Report.** Stats, a bar chart, and a pie chart of pie.
 - **Sync Phones.** No server; phones merge by texting each other a link.

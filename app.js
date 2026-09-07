@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '1.3.0';
+  const VERSION = '1.3.1';
   const STORE_KEY = 'homesteados.v1';
 
   /* ------------------------------------------------------------------
@@ -194,6 +194,29 @@
   ];
   const SUP_POINTS = 5;
 
+  const ROAD_QUESTIONS = [
+    'Which of their crafts would you actually learn if you had a year?',
+    'What smell do you expect to hit first when we get out of the car?',
+    'What would you give up for a slower week? What wouldn’t you?',
+    'One thing you’d buy today if money were no object. One thing you’d buy if it were.',
+    'Sabbath: a rule, a gift, or a relic? Has your answer changed in the last five years?',
+    'Rank them: bread, cheese, pie, waffle. Defend the ranking.',
+    'Is craftsmanship a form of worship, or just work done well? Is there a difference?',
+    'Who in this car would last longest on a homestead, and why is it not you?',
+    'Communities like this one choose to live apart. What do they gain? What do they risk?',
+    'Name something you made with your hands that you’re still proud of.',
+    'Simplicity: is it owning less, or wanting less?',
+    'Is technology neutral? Name one tool that has made you worse at something.',
+    'If our household made one thing from scratch every week, what should it be?',
+    'Which tradition from your grandparents would you keep if you could keep only one?',
+    'Who taught you a skill patiently? What did that patience feel like?',
+    'What is one question you actually want to ask an artisan today?',
+    'How far back can you trace one thing you ate for breakfast?',
+    'What would a good day look like if nothing about it could be posted?',
+    'Predict the first full sentence someone says when we get out of the car.',
+    'What are you hoping happens today that you haven’t said out loud?',
+  ];
+
   const BOOT_LINES = [
     'Loading parchment…',
     'Warming up the gristmill (water‑powered, please wait)…',
@@ -224,6 +247,7 @@
     actuals: {},              // predId -> {v, ts}  (group-settled answers)
     votes: {},                // supId -> voterId -> {p, ts}
     doneAt: {},               // stopId -> ts when marked done
+    roadIdx: 0,               // where the road-questions deck is
     now: 'pickup',            // current stop
     settings: { sabbath: true, haptics: true, push: false },
     setup: false,
@@ -314,7 +338,7 @@
      Navigation
      ------------------------------------------------------------------ */
 
-  const renderers = { day: renderDay, bingo: renderBingo, score: renderScore, rate: renderRate, predict: renderPredict, more: renderMore };
+  const renderers = { day: renderDay, bingo: renderBingo, score: renderScore, rate: renderRate, predict: renderPredict, road: renderRoad, more: renderMore };
   let currentView = 'day';
 
   function show(view) {
@@ -442,7 +466,8 @@
         <div class="now-time">${esc(now.time)}${now.sub ? `<span class="now-sub">${esc(now.sub)}</span>` : ''}</div>
         <h3 class="now-title">${esc(now.title)}</h3>
         ${stopDetail(now)}
-        ${['coffee', 'drive'].includes(now.id) ? `<button type="button" class="nudge" data-goto="predict">Predictions are open. Lock them in before Elm Mott. ›</button>` : ''}
+        ${['coffee', 'drive'].includes(now.id) ? `<button type="button" class="nudge" data-goto="predict">Predictions are open. Lock them in before Elm Mott. ›</button>
+          <button type="button" class="nudge" data-goto="road">Road questions for the car. ›</button>` : ''}
         ${now.id === 'home' || allDone ? `<button type="button" class="nudge" data-goto="predict">Vote the superlatives and settle the predictions. ›</button>` : ''}
         <div class="now-actions">
           ${allDone ? `<button type="button" class="btn block" data-report>Open the Trip Report</button>`
@@ -639,7 +664,8 @@
 
   function renderScore() {
     const root = $('#view-score');
-    root.innerHTML = `<h2>Scoreboard</h2>`;
+    root.innerHTML = `<button type="button" class="back" data-back>‹ More</button><h2>Scoreboard</h2>`;
+    $('[data-back]', root).addEventListener('click', () => show('more'));
     if (needPlayers(root)) return;
     const p = activePlayer();
     const board = totals();
@@ -705,11 +731,11 @@
   let openGuide = null;
   function renderRate() {
     const root = $('#view-rate');
-    root.innerHTML = `<h2>Field Guide</h2>`;
+    root.innerHTML = `<h2>Rate</h2>`;
     if (needPlayers(root)) return;
     const p = activePlayer();
     root.innerHTML += `
-      <p class="view-intro">What to notice at each stop, what to ask, and the five‑loaf rating once you have been.</p>
+      <p class="view-intro">The five‑loaf rating for every stop, with a field guide under each: what to notice and what to ask.</p>
       ${playerChips()}
       ${SHOPS.map((s) => {
         const mine = ((S.ratings[p.id] || {})[s.id] || {}).n || 0;
@@ -891,6 +917,34 @@
   }
 
   /* ------------------------------------------------------------------
+     Road: questions for the car
+     ------------------------------------------------------------------ */
+
+  function renderRoad() {
+    const root = $('#view-road');
+    const n = ROAD_QUESTIONS.length;
+    const i = ((S.roadIdx || 0) % n + n) % n;
+    root.innerHTML = `
+      <h2>Road Questions</h2>
+      <p class="view-intro">For the car. Some are light, some are not. Whoever is holding the phone reads it out; whoever is driving answers last.</p>
+      <section class="road-card">
+        <span class="road-count">${i + 1} of ${n}</span>
+        <p class="road-q">${esc(ROAD_QUESTIONS[i])}</p>
+      </section>
+      <div class="road-nav">
+        <button type="button" class="btn" data-road="-1" ${i === 0 ? 'disabled' : ''}>‹ Back</button>
+        <button type="button" class="btn quiet small" data-road="shuffle">Shuffle</button>
+        <button type="button" class="btn primary" data-road="1" ${i === n - 1 ? 'disabled' : ''}>Next ›</button>
+      </div>
+      <p class="fine">${i === n - 1 ? 'That is the deck. If you are still driving, start again or sit with the last one.' : 'No answers are recorded. This one is just for the car.'}</p>`;
+    $$('[data-road]', root).forEach((b) => b.addEventListener('click', () => {
+      if (b.dataset.road === 'shuffle') { let j = i; while (j === i) j = Math.floor(Math.random() * n); S.roadIdx = j; }
+      else S.roadIdx = Math.min(n - 1, Math.max(0, i + Number(b.dataset.road)));
+      save(); renderRoad();
+    }));
+  }
+
+  /* ------------------------------------------------------------------
      More: menu, report, primer, sync, settings, about
      ------------------------------------------------------------------ */
 
@@ -899,6 +953,7 @@
     root.innerHTML = `
       <h2>More</h2>
       <ul class="menu">
+        <li><button type="button" data-go="score">Scoreboard <small>Points from predictions and superlatives, plus whatever you award</small><span class="arrow">›</span></button></li>
         <li><button type="button" data-go="bingo">Homestead Bingo <small>For the watchful. Optional.</small><span class="arrow">›</span></button></li>
         <li><button type="button" data-go="report">Trip Report <small>Charts nobody asked for</small><span class="arrow">›</span></button></li>
         <li><button type="button" data-go="primer">Who Are These People? <small>A short, fair primer on Homestead Heritage</small><span class="arrow">›</span></button></li>
@@ -911,7 +966,7 @@
     $$('[data-go]', root).forEach((b) => b.addEventListener('click', () => pages[b.dataset.go]()));
   }
 
-  const pages = { bingo: () => show('bingo'), report: showReport, primer: showPrimer, sync: showSync, settings: showSettings, notes: showNotes, privacy: showPrivacy };
+  const pages = { bingo: () => show('bingo'), score: () => show('score'), report: showReport, primer: showPrimer, sync: showSync, settings: showSettings, notes: showNotes, privacy: showPrivacy };
 
   /* Trip report -------------------------------------------------------- */
 
@@ -1208,6 +1263,10 @@
   function showNotes() {
     openModal(`
       <h2>Release Notes</h2>
+      <div class="release"><h3>1.3.1</h3><ul>
+        <li>Road Questions shipped, after the developer was asked where they were.</li>
+        <li>Guide renamed back to Rate. Scoreboard joins Bingo under More.</li>
+      </ul></div>
       <div class="release"><h3>1.3.0 · Four Adults</h3><ul>
         <li>Predictions on the way up, superlatives on the way home. Points settle themselves.</li>
         <li>Ratings grew into a Field Guide: what to notice at each stop and what to ask.</li>
