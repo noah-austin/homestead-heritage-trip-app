@@ -462,18 +462,13 @@ hr.rule {
 .loaf {
   background: none;
   border: 0;
+  font-size: 1.45rem;
   padding: 0 0.05rem;
-  line-height: 0;
-  color: var(--ink-faint);
+  filter: grayscale(1) opacity(0.35);
   transition: transform 0.1s;
 }
-.loaf svg { display: block; }
-.loaf .loaf-body { fill: none; stroke: currentColor; stroke-width: 1.6; }
-.loaf .loaf-score { fill: none; stroke: currentColor; stroke-width: 1.4; }
-.loaf.on { color: var(--gold); }
-.loaf.on .loaf-body { fill: var(--gold); stroke: var(--gold); }
-.loaf.on .loaf-score { stroke: var(--bg-elev); }
-.loaf:active { transform: scale(1.2); }
+.loaf.on { filter: none; }
+.loaf:active { transform: scale(1.25); }
 
 /* --------------------------------------------------------------------------
    More / settings / report

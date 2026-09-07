@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '1.5.1';
+  const VERSION = '1.5.2';
   const STORE_KEY = 'homesteados.v1';
 
   /* ------------------------------------------------------------------
@@ -758,7 +758,7 @@
         return `<div class="card shop" data-shop="${s.id}">
           <span class="name">${esc(s.name)}</span>
           <div class="loaves" role="radiogroup" aria-label="${esc(s.name)} rating">
-            ${[1, 2, 3, 4, 5].map((n) => `<button type="button" class="loaf ${n <= mine ? 'on' : ''}" data-n="${n}" aria-label="${n} loaves">${ICON.loaf}</button>`).join('')}
+            ${[1, 2, 3, 4, 5].map((n) => `<button type="button" class="loaf ${n <= mine ? 'on' : ''}" data-n="${n}" aria-label="${n} loaves">🍞</button>`).join('')}
           </div>
           <p class="note">${esc(s.note)}</p>
           <button type="button" class="guide-toggle" data-guide="${s.id}" aria-expanded="${open}">${open ? '▾' : '▸'} Field guide</button>
