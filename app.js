@@ -1157,12 +1157,12 @@
   }
 
   /* Family room: live sync through the mailbox server (server/ on Railway). */
-  const ROOM_DEFAULT_URL = '';                 // baked in once the Railway URL exists
+  const ROOM_DEFAULT_URL = 'https://homestead-heritage-trip-app-production.up.railway.app';
   const ROOM_DEFAULT_CODE = 'austins-martins';
   const room = { url: ROOM_DEFAULT_URL, code: ROOM_DEFAULT_CODE, client: null, dirty: true, since: 0, lastOk: 0, status: 'off', pushTimer: null, timer: null, inflight: false };
   try {
     const cfg = JSON.parse(localStorage.getItem('homesteados.room') || '{}');
-    if (typeof cfg.url === 'string') room.url = cfg.url;
+    if (cfg.url) room.url = cfg.url;   // a blank saved value falls back to the default
     if (typeof cfg.code === 'string' && cfg.code) room.code = cfg.code;
     room.client = localStorage.getItem('homesteados.client');
     if (!room.client) { room.client = uid() + uid(); localStorage.setItem('homesteados.client', room.client); }
@@ -1276,7 +1276,7 @@
       <form data-add class="custom-row" style="grid-template-columns:1fr auto"><input type="text" name="name" placeholder="Add a person" /><button class="btn small" type="submit">Add</button></form>
       <hr class="rule" />
       <span class="rubric">Family room</span>
-      <p class="fine">Live sync between phones through a tiny server. Everyone with the same room code sees the same ratings, predictions, and votes within a few seconds. Leave the server blank to stay offline and use texted links instead.</p>
+      <p class="fine">Live sync between phones through a tiny server. Everyone with the same room code sees the same ratings, predictions, and votes within a few seconds. The server is preset; you only need this if it ever moves.</p>
       <label class="fine" for="roomUrl">Server</label>
       <input type="url" id="roomUrl" value="${esc(room.url)}" placeholder="https://your-service.up.railway.app" autocapitalize="off" autocorrect="off" />
       <label class="fine" for="roomCode" style="margin-top:0.4rem;display:block">Room code</label>
