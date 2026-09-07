@@ -5,7 +5,7 @@
 (function () {
   'use strict';
 
-  const VERSION = '1.5.0';
+  const VERSION = '1.5.1';
   const STORE_KEY = 'homesteados.v1';
 
   /* ------------------------------------------------------------------
@@ -280,6 +280,12 @@
     })).filter((h) => h.present);
   }
 
+  const ICON = {
+    loaf: '<svg viewBox="0 0 24 24" width="26" height="26" aria-hidden="true"><path class="loaf-body" d="M4 12.5C4 8.4 7.6 6 12 6s8 2.4 8 6.5V19H4z"/><path class="loaf-score" d="M9 9.5l-1 2M13 9l-1 2M17 9.5l-1 2" stroke-linecap="round"/></svg>',
+    pencil: '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.8 2.8 0 0 1 4 4L7.5 20.5 2 22l1.5-5.5z"/></svg>',
+    check: '<svg viewBox="0 0 24 24" width="11" height="11" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>',
+  };
+
   const uid = () => Math.random().toString(36).slice(2, 9) + Date.now().toString(36).slice(-3);
   const slug = (s) => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'p';
   const player = (id) => S.players.find((p) => p.id === id);
@@ -505,10 +511,10 @@
           const hasNote = ((S.notes[s.id] || {}).text || '').trim().length > 0;
           return `<li class="tl-row ${state} ${open ? 'is-open' : ''}" data-stop="${s.id}">
             <button type="button" class="tl-head" aria-expanded="${open}">
-              <span class="tl-dot" aria-hidden="true">${done && !isNow ? '✓' : ''}</span>
+              <span class="tl-dot" aria-hidden="true">${done && !isNow ? ICON.check : ''}</span>
               <span class="tl-time">${esc(s.time)}</span>
               <span class="tl-title">${esc(s.title)}</span>
-              ${hasNote ? '<span class="tl-note" title="Has a field note">✎</span>' : ''}
+              ${hasNote ? `<span class="tl-note" title="Has a field note">${ICON.pencil}</span>` : ''}
               ${isNow ? '<span class="pill now">Now</span>' : `<span class="tl-chev">${open ? '▾' : '▸'}</span>`}
             </button>
             ${open ? `<div class="tl-body">
@@ -752,7 +758,7 @@
         return `<div class="card shop" data-shop="${s.id}">
           <span class="name">${esc(s.name)}</span>
           <div class="loaves" role="radiogroup" aria-label="${esc(s.name)} rating">
-            ${[1, 2, 3, 4, 5].map((n) => `<button type="button" class="loaf ${n <= mine ? 'on' : ''}" data-n="${n}" aria-label="${n} loaves">🍞</button>`).join('')}
+            ${[1, 2, 3, 4, 5].map((n) => `<button type="button" class="loaf ${n <= mine ? 'on' : ''}" data-n="${n}" aria-label="${n} loaves">${ICON.loaf}</button>`).join('')}
           </div>
           <p class="note">${esc(s.note)}</p>
           <button type="button" class="guide-toggle" data-guide="${s.id}" aria-expanded="${open}">${open ? '▾' : '▸'} Field guide</button>

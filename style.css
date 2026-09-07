@@ -228,9 +228,11 @@ hr.rule {
   border-radius: 999px;
   width: 2.3rem;
   height: 2.3rem;
-  font-size: 1.1rem;
+  display: grid;
+  place-items: center;
   color: var(--ink-soft);
 }
+.icon-btn .ico { display: block; }
 
 #app {
   max-width: 42rem;
@@ -266,9 +268,10 @@ hr.rule {
   align-items: center;
   gap: 0.1rem;
 }
-.tab-glyph { font-size: 1.3rem; line-height: 1; }
+.tab-glyph { line-height: 0; }
+.tab-glyph .ico { display: block; }
 .tab.is-active { color: var(--vermilion); }
-.tab.is-active .tab-glyph { text-shadow: 0 0 10px rgb(155 47 34 / 0.35); }
+.tab.is-active .tab-glyph { filter: drop-shadow(0 0 6px rgb(155 47 34 / 0.35)); }
 
 /* --------------------------------------------------------------------------
    Cards, chips, buttons
@@ -459,13 +462,18 @@ hr.rule {
 .loaf {
   background: none;
   border: 0;
-  font-size: 1.45rem;
   padding: 0 0.05rem;
-  filter: grayscale(1) opacity(0.35);
+  line-height: 0;
+  color: var(--ink-faint);
   transition: transform 0.1s;
 }
-.loaf.on { filter: none; }
-.loaf:active { transform: scale(1.25); }
+.loaf svg { display: block; }
+.loaf .loaf-body { fill: none; stroke: currentColor; stroke-width: 1.6; }
+.loaf .loaf-score { fill: none; stroke: currentColor; stroke-width: 1.4; }
+.loaf.on { color: var(--gold); }
+.loaf.on .loaf-body { fill: var(--gold); stroke: var(--gold); }
+.loaf.on .loaf-score { stroke: var(--bg-elev); }
+.loaf:active { transform: scale(1.2); }
 
 /* --------------------------------------------------------------------------
    More / settings / report
@@ -735,7 +743,7 @@ html[data-theme='dark'] .map { filter: invert(0.9) hue-rotate(180deg) saturate(0
 }
 .tl-time { font-family: var(--font-display); font-weight: 700; font-size: 0.95rem; color: var(--ink-muted); white-space: nowrap; }
 .tl-title { font-family: var(--font-display); font-weight: 600; font-size: 1.12rem; color: var(--ink); }
-.tl-note { color: var(--gold); font-size: 0.9rem; }
+.tl-note { color: var(--gold); line-height: 0; }
 .tl-chev { color: var(--ink-faint); font-size: 0.85rem; }
 .tl-row.is-done .tl-dot { background: var(--verdigris); border-color: var(--verdigris); }
 .tl-row.is-done .tl-title { color: var(--ink-muted); }
